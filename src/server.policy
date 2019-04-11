@@ -1,0 +1,10 @@
+/* AUTOMATICALLY GENERATED ON Fri Mar 15 13:37:53 WET 2019*/
+/* DO NOT EDIT */
+
+grant {
+  permission java.io.FilePermission "${user.home}/-", "read, write, delete";
+  permission java.net.SocketPermission "*:12345", "resolve, listen";
+  permission java.net.SocketPermission "*:1024-", "accept, resolve";
+  permission java.util.PropertyPermission "user.dir", "read";
+};
+

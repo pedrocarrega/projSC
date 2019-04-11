@@ -1,0 +1,8 @@
+/* AUTOMATICALLY GENERATED ON Fri Mar 15 13:35:04 WET 2019*/
+/* DO NOT EDIT */
+
+grant {
+  permission java.io.FilePermission "${user.home}/-", "read, write";
+  permission java.net.SocketPermission "127.0.0.1:12345", "connect, resolve";
+};
+

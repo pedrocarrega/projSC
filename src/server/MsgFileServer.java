@@ -53,10 +53,10 @@ public class MsgFileServer {
 		//ServerSocket sSoc = null;
 		SSLServerSocket sSoc = null;
 		try {
-//			sSoc = new ServerSocket(Integer.parseInt(args));
-			SSoc = new
+			//sSoc = new ServerSocket(Integer.parseInt(args));
+			//sSoc = new SSLSimpleServer(Integer.parseInt(args));
 			ServerSocketFactory ssf = SSLServerSocketFactory.getDefault( );
-			SSLServerSocket ss = (SSLServerSocket) ssf.createServerSocket(Integer.parseInt(args));
+			sSoc = (SSLServerSocket) ssf.createServerSocket(Integer.parseInt(args));
 		} catch (IOException e) {
 			System.err.println(e.getMessage());
 			System.exit(-1);
@@ -64,10 +64,11 @@ public class MsgFileServer {
 
 		while(true) {
 			try {
-				SSLServerSocket inSoc = new SSLSimpleServer(ss.accept()).start( );
+				new SSLSimpleServer(sSoc.accept()).start( );
+				
 				//Socket inSoc = sSoc.accept();
-				ServerThread newServerThread = new ServerThread(inSoc);
-				newServerThread.start();
+				//ServerThread newServerThread = new ServerThread(inSoc);
+				//newServerThread.start();
 			}
 			catch (IOException e) {
 				e.printStackTrace();
@@ -75,11 +76,11 @@ public class MsgFileServer {
 		}
 	}
 	
-	class ServerThread extends Thread {
+	class SSLSimpleServer extends Thread {
 
 		private Socket socket = null;
 
-		ServerThread(Socket inSoc) {
+		SSLSimpleServer(Socket inSoc) {
 			socket = inSoc;
 			System.out.println("thread do server para cada cliente");
 		}
@@ -505,22 +506,6 @@ public class MsgFileServer {
 						outStream.writeObject(new Boolean(false));
 						
 						fileStream.close();
-						
-//						outStream.writeObject(1);//caso de sucesso
-//
-//						FileInputStream fileStream = new FileInputStream(f);
-//
-//						byte[] fileByte = new byte[(int)f.length()];
-//
-//						fileStream.read(fileByte, 0, fileByte.length);
-//
-//						outStream.writeObject(fileByte.length);
-//						outStream.write(fileByte, 0, fileByte.length);
-//
-//						outStream.flush();
-//						fileStream.close();
-//						
-//						System.out.println("O ficheiro " + fileName + " foi enviado com sucesso");
 						
 					} else {
 						//caso o ficheiro que vai ser sacado nao exista

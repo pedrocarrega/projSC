@@ -12,6 +12,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+
 /**
  * 
  * @author Francisco Rodrigues, n50297; Pedro Carrega, n49480; Vasco Ferreira, n49470
@@ -30,8 +34,10 @@ public class MsgFile {
 			}
 		}
 		try {
+			SocketFactory sf = SSLSocketFactory.getDefault( );
 			String port = argumentos.substring(adress.length() + 1);
-			Socket echoSocket = new Socket(adress, Integer.parseInt(port));
+			SSLSocket s = (SSLSocket) sf.createSocket(adress, Integer.parseInt(port));
+			//Socket echoSocket = new Socket(adress, Integer.parseInt(port));
 			String user = args[1];
 			String password = null;
 			Scanner sc = new Scanner(System.in);
@@ -43,8 +49,8 @@ public class MsgFile {
 				password = sc.nextLine();
 			}
 
-			ObjectInputStream in = new ObjectInputStream(echoSocket.getInputStream());
-			ObjectOutputStream out = new ObjectOutputStream(echoSocket.getOutputStream());
+			ObjectInputStream in = new ObjectInputStream(s.getInputStream());
+			ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
 
 			out.writeObject(user);
 			out.writeObject(password);
@@ -53,7 +59,7 @@ public class MsgFile {
 
 			if(successLog == -1) {
 				System.out.println("Passe incorreta, o programa vai fechar");
-				echoSocket.close();
+				s.close();
 				sc.close();
 				return;
 			} else if(successLog == 0) {
@@ -78,7 +84,7 @@ public class MsgFile {
 			}
 
 			sc.close();
-			echoSocket.close();
+			s.close();
 			in.close();
 			out.close();
 		} catch (ConnectException e){

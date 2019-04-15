@@ -15,6 +15,10 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.net.ServerSocketFactory;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
+
 /**
  * 
  * @author Francisco Rodrigues, n50297; Pedro Carrega, n49480; Vasco Ferreira, n49470
@@ -46,9 +50,13 @@ public class MsgFileServer {
 	
 	private void startServer(String args) throws NumberFormatException, IOException {
 
-		ServerSocket sSoc = null;
+		//ServerSocket sSoc = null;
+		SSLServerSocket sSoc = null;
 		try {
-			sSoc = new ServerSocket(Integer.parseInt(args));
+//			sSoc = new ServerSocket(Integer.parseInt(args));
+			SSoc = new
+			ServerSocketFactory ssf = SSLServerSocketFactory.getDefault( );
+			SSLServerSocket ss = (SSLServerSocket) ssf.createServerSocket(Integer.parseInt(args));
 		} catch (IOException e) {
 			System.err.println(e.getMessage());
 			System.exit(-1);
@@ -56,7 +64,8 @@ public class MsgFileServer {
 
 		while(true) {
 			try {
-				Socket inSoc = sSoc.accept();
+				SSLServerSocket inSoc = new SSLSimpleServer(ss.accept()).start( );
+				//Socket inSoc = sSoc.accept();
 				ServerThread newServerThread = new ServerThread(inSoc);
 				newServerThread.start();
 			}

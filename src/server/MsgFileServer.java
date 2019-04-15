@@ -12,6 +12,7 @@ import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -506,22 +507,6 @@ public class MsgFileServer {
 						
 						fileStream.close();
 						
-//						outStream.writeObject(1);//caso de sucesso
-//
-//						FileInputStream fileStream = new FileInputStream(f);
-//
-//						byte[] fileByte = new byte[(int)f.length()];
-//
-//						fileStream.read(fileByte, 0, fileByte.length);
-//
-//						outStream.writeObject(fileByte.length);
-//						outStream.write(fileByte, 0, fileByte.length);
-//
-//						outStream.flush();
-//						fileStream.close();
-//						
-//						System.out.println("O ficheiro " + fileName + " foi enviado com sucesso");
-						
 					} else {
 						//caso o ficheiro que vai ser sacado nao exista
 						System.out.println("O ficheiro " + fileName + " nao existe");
@@ -697,6 +682,41 @@ public class MsgFileServer {
 
 			} catch (FileNotFoundException e) {
 				System.out.println("Erro em userExists, o ficheiro users nao existe no servidor");
+				e.printStackTrace();
+			}
+			return false;
+		}
+		
+		/**
+		 * 
+		 * @param username
+		 * @param password
+		 * @return true se o user for valido false caso contrario
+		 */
+		private boolean verifyData(String username, String password) {
+			File f = new File("users.txt");
+			
+			try {
+				BufferedReader br = new BufferedReader(new FileReader(f.getName()));
+				String linha;
+				
+				while((linha = br.readLine()) != null) {
+					String[] linhaSplitted = linha.split(":");
+					if(linhaSplitted[0].equals(username)) {
+						String pwHashed = UserManager.hashingDados(username + ":" + password);
+						br.close();
+						return linha.equals(pwHashed);
+					}
+				}	
+				br.close();
+			} catch (FileNotFoundException e) {
+				System.out.println("Erro em verifyData, o ficheiro users nao existe no servidor");
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchAlgorithmException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			return false;

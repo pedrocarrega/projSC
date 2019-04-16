@@ -39,7 +39,7 @@ public class UserManager {
 				switch (input[0]) {
 
 				case "add":
-					if(addUser(input[1] , input[2], args[0])) {
+					if(addUser(input[1] , input[2], managerPW)) {
 						System.out.println("User adicionado com sucesso");
 					}else {
 						System.out.println("Username j� est� em uso");
@@ -47,7 +47,7 @@ public class UserManager {
 					break;
 
 				case "edit":
-					if(editUser(input[1], input[2], input[3], args[0])) {
+					if(editUser(input[1], input[2], input[3], managerPW)) {
 						System.out.println("Password atualizada com sucesso");
 					}else {
 						System.out.println("Dados atuais incorretos, tente novamente");
@@ -72,21 +72,6 @@ public class UserManager {
 		}
 	}
 
-	/**
-	 * Devolve uma linha no formato proposto mas com a palavra pass depois do hash j� com salt
-	 * @param userData formato = username:password
-	 * @throws NoSuchAlgorithmException 
-	 */
-	private static String hashingDados(String userData) throws NoSuchAlgorithmException {
-		Random rnd = new Random();
-		int salt = rnd.nextInt();
-		String[] splitted = userData.split(":");
-		String nPW = salt + splitted[2];
-		MessageDigest md = MessageDigest.getInstance("SHA");
-		byte[] hashed = md.digest(nPW.getBytes());
-		String pwHashed = new String(hashed);
-		return splitted[0] + ":" + salt + ":" + pwHashed;
-	}
 
 	private static boolean addUser(String username, String password, String managerPW) {
 		File f = new File("users.txt");
@@ -159,6 +144,22 @@ public class UserManager {
 		}
 		return false;
 
+	}
+	
+	/**
+	 * Devolve uma linha no formato proposto mas com a palavra pass depois do hash j� com salt
+	 * @param userData formato = username:password
+	 * @throws NoSuchAlgorithmException 
+	 */
+	private static String hashingDados(String userData) throws NoSuchAlgorithmException {
+		Random rnd = new Random();
+		int salt = rnd.nextInt();
+		String[] splitted = userData.split(":");
+		String nPW = salt + splitted[2];
+		MessageDigest md = MessageDigest.getInstance("SHA");
+		byte[] hashed = md.digest(nPW.getBytes());
+		String pwHashed = new String(hashed);
+		return splitted[0] + ":" + salt + ":" + pwHashed;
 	}
 
 	private static byte[] geraMAC(String managerPW) {

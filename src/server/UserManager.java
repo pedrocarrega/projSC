@@ -22,10 +22,12 @@ import javax.crypto.spec.PBEKeySpec;
 
 public class UserManager {
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InvalidKeyException {
 
 		Scanner sc = new Scanner(System.in);
 		String managerPW = sc.nextLine();
+		if(validMAC(managerPW)) {
+		
 		
 		
 
@@ -66,6 +68,10 @@ public class UserManager {
 				break;
 			}
 		}
+		}else {
+			sc.close();
+			throw new InvalidKeyException("INVALID PASSWORD!!!");
+		}
 
 
 
@@ -101,7 +107,7 @@ public class UserManager {
 		return splitted[0] + ":" + salt + ":" + pwHashed;
 	}
 	
-	public static boolean addUser(String username, String password, String managerPW) {
+	private static boolean addUser(String username, String password, String managerPW) {
 		File f = new File("users.txt");
 		
 		try {
@@ -229,5 +235,34 @@ public class UserManager {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	private static boolean validMAC(String pass) throws IOException {
+		
+		File f = new File("mac.txt");
+		
+		if(f.exists()) {
+			
+			BufferedReader br = new BufferedReader(new FileReader(f));
+			byte[] mac = geraMAC(pass);
+			if(mac.length != f.length()) {
+				br.close();
+				return false;
+			}
+			for(int i = 0; i<mac.length; i++) {
+				if(mac[i] != br.read()) {
+					br.close();
+					return false;
+				}
+			}
+			
+			br.close();
+			return true;
+			
+		}else {
+			atualizaMAC(geraMAC(pass));
+			return true;
+		}
+		
 	}
 }

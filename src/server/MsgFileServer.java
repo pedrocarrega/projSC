@@ -13,12 +13,18 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
 import java.security.InvalidKeyException;
+import java.security.Key;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherOutputStream;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
@@ -118,7 +124,7 @@ public class MsgFileServer {
 				boolean executa = true;
 				
 				while(executa) {
-					try {
+					//try {
 						String comando = (String)inStream.readObject();//leitura do comando do cliente
 						System.out.println("Comando recebido: " + comando);
 						trataComando(comando, inStream, outStream, user);
@@ -126,11 +132,11 @@ public class MsgFileServer {
 						if(comando.equals("quit")){
 							executa = false;
 						}
-					} catch (SocketException e) {
-						executa = false;
-						socket.close();
-						System.out.println("O utilizador " + user + " disconectou-se por razoes desconhecidas");
-					}
+//					} catch (SocketException e) {
+//						executa = false;
+//						socket.close();
+//						System.out.println("O utilizador " + user + " disconectou-se por razoes desconhecidas");
+//					}
 				}
 				
 				socket.close();
@@ -138,6 +144,15 @@ public class MsgFileServer {
 			} catch (IOException e) {
 				e.printStackTrace();
 			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			} catch (InvalidKeyException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchAlgorithmException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NoSuchPaddingException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -151,9 +166,10 @@ public class MsgFileServer {
 		 * @param out - to send objects to client
 		 * @throws FileNotFoundException
 		 * @throws IOException
+		 * @throws NoSuchAlgorithmException 
 		 */
 		
-		private void autenticacao(File f, String user, String password, ObjectOutputStream out) throws FileNotFoundException, IOException {
+		private void autenticacao(File f, String user, String password, ObjectOutputStream out) throws FileNotFoundException, IOException, NoSuchAlgorithmException {
 
 			//Ja faz conforme o que o pedro fez, ou seja no merge aproveitar isto
 			int i = UserManager.validateUser(user, password);
@@ -180,9 +196,12 @@ public class MsgFileServer {
 		 * @param user - userID
 		 * @throws IOException
 		 * @throws ClassNotFoundException
+		 * @throws NoSuchPaddingException 
+		 * @throws NoSuchAlgorithmException 
+		 * @throws InvalidKeyException 
 		 */
 		
-		private void trataComando(String comando, ObjectInputStream inStream, ObjectOutputStream outStream, String user) throws IOException, ClassNotFoundException {
+		private void trataComando(String comando, ObjectInputStream inStream, ObjectOutputStream outStream, String user) throws IOException, ClassNotFoundException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException {
 
 			String[] splited = comando.split("\\s+");
 
@@ -227,13 +246,21 @@ public class MsgFileServer {
 		 * @param user - userID
 		 * @throws ClassNotFoundException
 		 * @throws IOException
+		 * @throws NoSuchAlgorithmException 
+		 * @throws NoSuchPaddingException 
+		 * @throws InvalidKeyException 
+		 * @throws IllegalBlockSizeException 
 		 */
 		//Já cifra
-		private void storeFiles(ObjectInputStream inStream, ObjectOutputStream out, String[] splited, String user) throws ClassNotFoundException, IOException {
+		private void storeFiles(ObjectInputStream inStream, ObjectOutputStream out, String[] splited, String user) throws ClassNotFoundException, IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException {
 
 			KeyGenerator kg;
-			SecretKey key;
-			Cipher c = null;			
+			SecretKey key = null;
+			Cipher c = null;
+			KeyPairGenerator kpg;
+			PublicKey ku = null;
+			PrivateKey kr = null;
+
 			
 			for(int i = 1; i < splited.length; i++) {
 
@@ -241,22 +268,12 @@ public class MsgFileServer {
 
 				if(!f.exists()) {
 					
-					try {
 						kg = KeyGenerator.getInstance("AES");
 						kg.init(128);
-						key =	kg.generateKey();
+						key = kg.generateKey();
 						c = Cipher.getInstance("AES");
 						c.init(Cipher.ENCRYPT_MODE, key);
-					} catch (NoSuchAlgorithmException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					} catch (InvalidKeyException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					} catch (NoSuchPaddingException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+
 					
 					out.writeObject(new Boolean(true));//se ficheiro nao existe envia true de sucesso
 
@@ -279,6 +296,10 @@ public class MsgFileServer {
 							quantos = inStream.read(fileByte, 0, tamanho);
 							cos.write(fileByte);	
 						}
+						
+						//guarda a key, ainda por implementar por falta do certificado
+						saveKey(key, splited[i], user);
+
 						cos.close();
 						newFile.close();
 						
@@ -290,6 +311,43 @@ public class MsgFileServer {
 					System.out.println("O ficheiro " + splited[i] + " ja existe!");
 				}
 			}
+		}
+		/**
+		 * 
+		 * @param key
+		 * @param fileName
+		 * @param user
+		 * @throws NoSuchAlgorithmException
+		 * @throws NoSuchPaddingException 
+		 * @throws InvalidKeyException 
+		 * @throws IOException 
+		 * @throws IllegalBlockSizeException 
+		 */
+		private void saveFileKey(SecretKey key, String fileName, String user) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IOException, IllegalBlockSizeException {
+//			KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
+//			kpg.initialize(1024);              // 1024 bits
+//			KeyPair kp = kpg.generateKeyPair( );
+//			PublicKey ku = kp.getPublic();
+//			PrivateKey kr = kp.getPrivate();
+			
+			//ir buscar o certificado que tem a chave publica e privada
+			Cipher c1 = Cipher.getInstance("RSA");
+			c1.init(Cipher.WRAP_MODE, CHAVE_PUBLICA);
+			byte[] wrappedKey = c1.wrap(key);
+			
+			FileOutputStream keyFile = new FileOutputStream("users/" + user + "/files/" + fileName + ".key");
+			keyFile.write(wrappedKey);
+			keyFile.close();
+		}
+		
+		private Key getFileKey(String fileName, String user) {
+			FileInputStream keyFileInput = new FileInputStream("users/" + user + "/files/" + fileName + ".key");
+			byte[] wrappedKey = new byte[keyFileInput.available()];
+			keyFileInput.read(wrappedKey);
+			Cipher c1 = Cipher.getInstance("RSA");
+			c1.init(Cipher.UNWRAP_MODE, CHAVE_PRIVADA);
+			return c1.unwrap(wrappedKey, "RSA", Cipher.SECRET_KEY);
+			//Falta ir buscar a chave privada ao certificado para dar unwrap da chave
 		}
 
 		/**
@@ -667,41 +725,6 @@ public class MsgFileServer {
 
 			} catch (FileNotFoundException e) {
 				System.out.println("Erro em userExists, o ficheiro users nao existe no servidor");
-				e.printStackTrace();
-			}
-			return false;
-		}
-		
-		/**
-		 * 
-		 * @param username
-		 * @param password
-		 * @return true se o user for valido false caso contrario
-		 */
-		private boolean verifyData(String username, String password) {
-			File f = new File("users.txt");
-			
-			try {
-				BufferedReader br = new BufferedReader(new FileReader(f.getName()));
-				String linha;
-				
-				while((linha = br.readLine()) != null) {
-					String[] linhaSplitted = linha.split(":");
-					if(linhaSplitted[0].equals(username)) {
-						String pwHashed = UserManager.hashingDados(username + ":" + password);
-						br.close();
-						return linha.equals(pwHashed);
-					}
-				}	
-				br.close();
-			} catch (FileNotFoundException e) {
-				System.out.println("Erro em verifyData, o ficheiro users nao existe no servidor");
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (NoSuchAlgorithmException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			return false;

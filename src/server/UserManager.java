@@ -21,10 +21,13 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
 public class UserManager {
-
+	
 	public static void main(String[] args) {
 
 		Scanner sc = new Scanner(System.in);
+		String managerPW = sc.nextLine();
+		
+		
 
 		while(true) {
 
@@ -98,7 +101,7 @@ public class UserManager {
 		return splitted[0] + ":" + salt + ":" + pwHashed;
 	}
 	
-	private static boolean addUser(String username, String password, String managerPW) {
+	public static boolean addUser(String username, String password, String managerPW) {
 		File f = new File("users.txt");
 		
 		try {

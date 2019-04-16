@@ -42,7 +42,7 @@ public class UserManager {
 				if(addUser(input[1] , input[2], args[0])) {
 					System.out.println("User adicionado com sucesso");
 				}else {
-					System.out.println("Username já está em uso");
+					System.out.println("Username jï¿½ estï¿½ em uso");
 				}
 				break;
 
@@ -86,7 +86,7 @@ public class UserManager {
 	}
 	
 	/**
-	 * Devolve uma linha no formato proposto mas com a palavra pass depois do hash já com salt
+	 * Devolve uma linha no formato proposto mas com a palavra pass depois do hash jï¿½ com salt
 	 * @param userData formato = username:password
 	 * @throws NoSuchAlgorithmException 
 	 */
@@ -194,14 +194,6 @@ public class UserManager {
 				mac.update(linha.getBytes());
 			}
 			br.close();
-			FileOutputStream fos = new FileOutputStream("mac1.txt");
-			ObjectOutputStream	oos	= new ObjectOutputStream(fos);
-			oos.write(mac.doFinal());
-			oos.close();
-			fos.close();
-			File file = new File("mac1.txt");
-			f.delete();
-			file.renameTo(new File("mac.txt"));
 		} catch (NoSuchAlgorithmException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -214,6 +206,21 @@ public class UserManager {
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private static void atualizaMAC(Mac mac) {
+		try {
+			FileOutputStream fos = new FileOutputStream("mac1.txt");
+			ObjectOutputStream	oos	= new ObjectOutputStream(fos);
+			oos.write(mac.doFinal());
+			oos.close();
+			fos.close();
+			File file = new File("mac1.txt");
+			file.renameTo(new File("mac.txt"));
 		} catch (IllegalStateException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

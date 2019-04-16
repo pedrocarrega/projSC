@@ -63,7 +63,6 @@ public class UserManager {
 							System.out.println("Passe incorreta\n");
 						}
 
-
 						break;
 
 					case "quit":
@@ -169,9 +168,21 @@ public class UserManager {
 			while(br.ready()) {
 				String data = br.readLine();
 				String[] userData = data.split(":");
+				
+				File tempTrusted = new File("users/" + userData[0] + "/trustedUsers.txt");
+				tempTrusted.renameTo(new File("users/" + userData[0] + "/tempTrustedUsers.txt"));
+				BufferedReader btr = new BufferedReader(new FileReader(temp));
+				BufferedWriter btw = new BufferedWriter(new FileWriter(new File("users/" + userData[0] + "/trustedUsers.txt")));
+				
+				
+				
+				
 				if(!userData[0].equals(user)) {
 					bw.write(data);
 				}
+				
+				btr.close();
+				btw.close();
 			}
 
 			temp.delete();
@@ -208,6 +219,41 @@ public class UserManager {
 		br.close();
 		return 0;
 
+	}
+	
+	public static boolean removeLineFromFile(String fileName, String remove, String managerPW,boolean type) {
+		
+		File temp = new File(fileName);
+		temp.renameTo(new File("temp" + fileName));
+		BufferedReader br = new BufferedReader(new FileReader(temp));
+		BufferedWriter bw = new BufferedWriter(new FileWriter(new File(fileName)));
+
+		while(br.ready()) {
+			String data = br.readLine();
+			String[] userData = data.split(":");
+			if(!userData[0].equals(username)) {
+				bw.write(data);
+			}else {
+				bw.write(username + ":" + encryptionAlgorithms.hashingDados(newPW) + "\n");
+			}
+		}
+
+		temp.delete();
+
+		br.close();
+		bw.close();
+		
+		if(type) {
+			encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
+			return true;
+		}else {
+			//faz assinatura (po trusted users file)
+		}
+
+		
+		
+		
+		
 	}
 
 

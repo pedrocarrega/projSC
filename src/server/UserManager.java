@@ -125,7 +125,7 @@ public class UserManager {
 			e.printStackTrace();
 		}
 		
-		geraMAC(managerPW);
+		atualizaMAC(geraMAC(managerPW));
 		return true;
 	}
 	
@@ -151,7 +151,7 @@ public class UserManager {
 						}
 						bw.close();
 						br.close();
-						geraMAC(managerPW);
+						atualizaMAC(geraMAC(managerPW));
 						return true;
 					}
 				}
@@ -171,13 +171,13 @@ public class UserManager {
 		
 	}
 	
-	private static void geraMAC(String managerPW) {
+	private static byte[] geraMAC(String managerPW) {
 		byte[] salt = {(byte) 0xc9, (byte) 0x36, (byte) 0x78, (byte) 0x99, (byte) 0x52, 
 				(byte) 0x3e, (byte) 0xea, (byte) 0xf2};
 		PBEKeySpec keySpec	= 	new	PBEKeySpec(managerPW.toCharArray(), salt, 20);  
 		SecretKeyFactory kf;
 		SecretKey key;
-		Mac mac;
+		Mac mac = null;
 		File f = new File("users.txt");
 		try {
 			mac	= Mac.getInstance("HmacSHA1");
@@ -207,13 +207,14 @@ public class UserManager {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		return mac.doFinal();
 	}
 	
-	private static void atualizaMAC(Mac mac) {
+	private static void atualizaMAC(byte[] mac) {
 		try {
 			FileOutputStream fos = new FileOutputStream("mac1.txt");
 			ObjectOutputStream	oos	= new ObjectOutputStream(fos);
-			oos.write(mac.doFinal());
+			oos.write(mac);
 			oos.close();
 			fos.close();
 			File file = new File("mac1.txt");

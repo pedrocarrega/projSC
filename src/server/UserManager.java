@@ -26,6 +26,7 @@ public class UserManager {
 					System.out.println(presentOptions());
 					//input
 					String[] input = sc.nextLine().split(" ");
+					int result;
 
 					switch (input[0]) {
 
@@ -38,19 +39,31 @@ public class UserManager {
 						break;
 
 					case "edit":
-						int result = editUser(input[1], input[2], input[3], managerPW);
-						
+						result = editUser(input[1], input[2], input[3], managerPW);
+
 						if(result == 0) {
-							System.out.println("Este utilizador nao existe. Assim, vai ser criada uma conta com este username e password\n");
+							System.out.println("Este utilizador nao existe\n");
 						}else if(result == 1) {
 							System.out.println("Password atualizada com sucesso\n");
 						} else {
 							System.out.println("Passe incorreta\n");
 						}
-						
+
 						break;
 
 					case "remove":
+
+						result = removeUser(input[1], input[2], managerPW);
+
+						if(result == 0) {
+							System.out.println("Este utilizador nao existe\n");
+						}else if(result == 1) {
+							System.out.println("Utilizador removido com sucesso\n");
+						} else {
+							System.out.println("Passe incorreta\n");
+						}
+
+
 						break;
 
 					case "quit":
@@ -95,7 +108,7 @@ public class UserManager {
 				return false;
 			}
 		}
-		bw.write(encryptionAlgorithms.hashingDados(username + ":" + password) + "\n");
+		bw.write(username + ":" + encryptionAlgorithms.hashingDados(password) + "\n");
 
 
 
@@ -107,9 +120,9 @@ public class UserManager {
 	}
 
 	private static int editUser(String username, String oldPW, String newPW, String managerPW) throws NoSuchAlgorithmException, IOException {
-		
+
 		int result = validateUser(username, oldPW);
-		
+
 		if(result != 1) {
 			return result;
 		}else {
@@ -117,27 +130,62 @@ public class UserManager {
 			temp.renameTo(new File("tempUsers.txt"));
 			BufferedReader br = new BufferedReader(new FileReader(temp));
 			BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt")));
-			
+
 			while(br.ready()) {
 				String data = br.readLine();
 				String[] userData = data.split(":");
 				if(!userData[0].equals(username)) {
 					bw.write(data);
 				}else {
-					bw.write(username + ":" + encryptionAlgorithms.hashingDados(newPW));
+					bw.write(username + ":" + encryptionAlgorithms.hashingDados(newPW) + "\n");
 				}
 			}
-			
+
 			temp.delete();
-			
+
 			br.close();
 			bw.close();
-			
+
+			encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
+
 			return 1;
-			
+
 		}
 
 	}
+
+	private static int removeUser(String user, String pass, String managerPW) throws IOException, NoSuchAlgorithmException {
+
+		int result = validateUser(user, pass);
+
+		if(result != 1) {
+			return result;
+		}else {
+			File temp = new File("users.txt");
+			temp.renameTo(new File("tempUsers.txt"));
+			BufferedReader br = new BufferedReader(new FileReader(temp));
+			BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt")));
+
+			while(br.ready()) {
+				String data = br.readLine();
+				String[] userData = data.split(":");
+				if(!userData[0].equals(user)) {
+					bw.write(data);
+				}
+			}
+
+			temp.delete();
+
+			br.close();
+			bw.close();
+
+			encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
+
+			return 1;
+
+		}
+	}
+
 
 	public static int validateUser(String user, String pass) throws IOException, NoSuchAlgorithmException {
 
@@ -167,7 +215,7 @@ public class UserManager {
 
 		StringBuilder sb = new StringBuilder();
 
-		sb.append("-----------------------------------------------------------------------------\n");
+		sb.append("\n\n-----------------------------------------------------------------------------\n");
 		sb.append("add <username> <password> - adiciona conta de utilizador ao servidor\n");
 		sb.append("edit <username> <old password> <new password> - altera a password do utilizador\n");
 		sb.append("remove <username> <password> - remove conta de utilizador do servidor\n");

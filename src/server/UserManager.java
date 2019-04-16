@@ -155,6 +155,24 @@ public class UserManager {
 		br.close();
 		return 0;
 		
+<<<<<<< HEAD
+=======
+	}
+
+	
+	private static String presentOptions() {
+
+		StringBuilder sb = new StringBuilder();
+
+		sb.append("-----------------------------------------------------------------------------\n");
+		sb.append("add <username> <password> - adiciona conta de utilizador ao servidor\n");
+		sb.append("edit <username> <old password> <new password> - altera a password do utilizador\n");
+		sb.append("remove <username> <password> - remove conta de utilizador do servidor\n");
+		sb.append("quit - sai do programa\n");
+		sb.append("-----------------------------------------------------------------------------\n");
+
+		return sb.toString();
+>>>>>>> branch 'vasco' of https://github.com/pedrocarrega/projSC.git
 	}
 
 	

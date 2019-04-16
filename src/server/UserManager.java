@@ -2,7 +2,6 @@ package server;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -12,132 +11,138 @@ import java.util.Scanner;
 
 public class UserManager {
 
-	public static void main(String[] args) throws InvalidKeyException, IOException {
+	public static void main(String[] args){
 
-		Scanner sc = new Scanner(System.in);
-		String managerPW = sc.nextLine();
-		
-		if(encryptionAlgorithms.validMAC(managerPW)) {
+		try(Scanner sc = new Scanner(System.in)){
 
-			while(true) {
 
-				//apresentar opcoes
-				System.out.println(presentOptions());
-				//input
-				String[] input = sc.nextLine().split(" ");
+			String managerPW = sc.nextLine();
 
-				switch (input[0]) {
+			if(encryptionAlgorithms.validMAC(managerPW)) {
 
-				case "add":
-					if(addUser(input[1] , input[2], managerPW)) {
-						System.out.println("User adicionado com sucesso");
-					}else {
-						System.out.println("Username ja esta em uso");
+				while(true) {
+
+					//apresentar opcoes
+					System.out.println(presentOptions());
+					//input
+					String[] input = sc.nextLine().split(" ");
+
+					switch (input[0]) {
+
+					case "add":
+						if(addUser(input[1] , input[2], managerPW)) {
+							System.out.println("User adicionado com sucesso");
+						}else {
+							System.out.println("Username ja esta em uso");
+						}
+						break;
+
+					case "edit":
+						int result = editUser(input[1], input[2], input[3], managerPW);
+						
+						if(result == 0) {
+							System.out.println("Este utilizador nao existe. Assim, vai ser criada uma conta com este username e password\n");
+						}else if(result == 1) {
+							System.out.println("Password atualizada com sucesso\n");
+						} else {
+							System.out.println("Passe incorreta\n");
+						}
+						
+						break;
+
+					case "remove":
+						break;
+
+					case "quit":
+						System.exit(0); //fecha o programa
+
+					default:
+						System.out.println("Comando invalido, por favor volte a inserir o comando\n\n\n");
+
+						break;
 					}
-					break;
-
-				case "edit":
-					if(editUser(input[1], input[2], input[3], managerPW)) {
-						System.out.println("Password atualizada com sucesso");
-					}else {
-						System.out.println("Dados atuais incorretos, tente novamente");
-					}
-
-				case "remove":
-					break;
-
-				case "quit":
-					sc.close();
-					System.exit(0); //fecha o programa
-
-				default:
-					System.out.println("Comando invalido, por favor volte a inserir o comando\n\n\n");
-
-					break;
 				}
+			}else {
+				throw new InvalidKeyException();
 			}
-		}else {
-			sc.close();
-			throw new InvalidKeyException("INVALID PASSWORD!!!");
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidKeyException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
 	}
 
 
-	private static boolean addUser(String username, String password, String managerPW) {
+	private static boolean addUser(String username, String password, String managerPW) throws NoSuchAlgorithmException, IOException {
 
-		
-		try (BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt")));
-				BufferedReader br = new BufferedReader(new FileReader(new File("users.txt")))){
-			
-			String linha;
 
-			while((linha = br.readLine()) != null) {
-				String[] lineSplitted = linha.split(":");
-				if(lineSplitted[0].equals(username)) {
-					return false;
-				}
+		BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt")));
+		BufferedReader br = new BufferedReader(new FileReader(new File("users.txt")));
+
+
+		String linha;
+
+		while((linha = br.readLine()) != null) {
+			String[] lineSplitted = linha.split(":");
+			if(lineSplitted[0].equals(username)) {
+				bw.close();
+				br.close();
+				return false;
 			}
-			bw.write(encryptionAlgorithms.hashingDados(username + ":" + password) + "\n");
-			
-		
+		}
+		bw.write(encryptionAlgorithms.hashingDados(username + ":" + password) + "\n");
+
+
 
 		encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
+		br.close();
+		bw.close();
 		return true;
-		
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-			return false;
-		}
+
 	}
 
-	private static boolean editUser(String username, String oldPW, String newPW, String managerPW) {
-
-		try (BufferedReader br = new BufferedReader(new FileReader(new File("users.txt")))){
+	private static int editUser(String username, String oldPW, String newPW, String managerPW) throws NoSuchAlgorithmException, IOException {
+		
+		int result = validateUser(username, oldPW);
+		
+		if(result != 1) {
+			return result;
+		}else {
+			File temp = new File("users.txt");
+			temp.renameTo(new File("tempUsers.txt"));
+			BufferedReader br = new BufferedReader(new FileReader(temp));
+			BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt")));
 			
-			String linha;
-			while((linha = br.readLine()) != null) {
-				String[] lineSplitted = linha.split(":");
-				if(lineSplitted[0].equals(username)) {
-					String dadosHashed = encryptionAlgorithms.hashingDados(username + ":" + oldPW);
-					if(dadosHashed.equals(linha)) {
-						File tempFile = new File("usersTemp.txt");
-						BufferedWriter bw = new BufferedWriter(new FileWriter(tempFile.getName()));
-						//String currentLine;
-						br.reset();
-						while((linha = br.readLine()) != null) {
-							if(!linha.equals(username)) {
-								bw.write(linha);
-							}
-						}
-						bw.close();
-						br.close();
-						encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
-						return true;
-					}
+			while(br.ready()) {
+				String data = br.readLine();
+				String[] userData = data.split(":");
+				if(!userData[0].equals(username)) {
+					bw.write(data);
+				}else {
+					bw.write(username + ":" + encryptionAlgorithms.hashingDados(newPW));
 				}
 			}
+			
+			temp.delete();
+			
 			br.close();
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			bw.close();
+			
+			return 1;
+			
 		}
-		return false;
 
 	}
-	
+
 	public static int validateUser(String user, String pass) throws IOException, NoSuchAlgorithmException {
-		
+
 		BufferedReader br = new BufferedReader(new FileReader(new File("users.txt")));
-		
+
 		while(br.ready()) {
 			String[] splited = br.readLine().split(":");
 			if(splited[0].equals(user)) {
@@ -146,18 +151,18 @@ public class UserManager {
 					br.close();
 					return 1;
 				}
-				
+
 				br.close();
 				return -1;
 			}
 		}
-		
+
 		br.close();
 		return 0;
-		
+
 	}
 
-	
+
 	private static String presentOptions() {
 
 		StringBuilder sb = new StringBuilder();

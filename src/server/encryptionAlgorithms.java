@@ -22,7 +22,7 @@ public class encryptionAlgorithms {
 	
 	/**
 	 * Devolve uma linha no formato proposto mas com a palavra pass depois do hash j� com salt
-	 * @param userData formato = username:password
+	 * @param userData - password
 	 * @throws NoSuchAlgorithmException 
 	 */
 	public static String hashingDados(String userData) throws NoSuchAlgorithmException {

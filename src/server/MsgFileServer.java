@@ -173,7 +173,6 @@ public class MsgFileServer {
 
 			if(!user.equals(userLine)) {
 				System.out.println("Este utilizador nao existe. Assim, vai ser criada uma conta com este username e password");
-				criaConta(f, user, password);
 				out.writeObject(0);//enviar 0 se o cliente nao existe
 				br.close();
 			}else if(password.equals(passwordLine)) {
@@ -188,30 +187,6 @@ public class MsgFileServer {
 				return;
 			}
 
-		}
-
-		/**
-		 * @param f - file containing user information
-		 * @param user - userID
-		 * @param password
-		 */
-		
-		private void criaConta(File f, String user, String password) {
-			try {
-				FileWriter fw = new FileWriter(f,true); //the true will append the new data
-				fw.write(user + ":" + password + "\n");//appends user and password to the file
-				fw.close();
-				File folder = new File("users/" + user + "/files");
-				folder.mkdirs();
-				folder = new File("users/" + user + "/inbox.txt");
-				folder.createNewFile();
-				folder = new File("users/" + user + "/trustedUsers.txt");
-				folder.createNewFile();
-				System.out.println("Conta criada com sucesso");
-			} catch(IOException ioe) {
-				System.out.println("Problemas a fechar a conta");
-				System.err.println("IOException: " + ioe.getMessage());
-			}
 		}
 		
 		/**

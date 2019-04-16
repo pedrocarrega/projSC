@@ -21,76 +21,57 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 
 public class UserManager {
-	
-	public static void main(String[] args) throws InvalidKeyException {
+
+	public static void main(String[] args) throws InvalidKeyException, IOException {
 
 		Scanner sc = new Scanner(System.in);
 		String managerPW = sc.nextLine();
+		
 		if(validMAC(managerPW)) {
-		
-		
-		
 
-		while(true) {
+			while(true) {
 
-			//apresentar opcoes
-			System.out.println(presentOptions());
-			//input
-			String[] input = sc.nextLine().split(" ");
+				//apresentar opcoes
+				System.out.println(presentOptions());
+				//input
+				String[] input = sc.nextLine().split(" ");
 
-			switch (input[0]) {
-			
-			case "add":
-				if(addUser(input[1] , input[2], args[0])) {
-					System.out.println("User adicionado com sucesso");
-				}else {
-					System.out.println("Username j� est� em uso");
+				switch (input[0]) {
+
+				case "add":
+					if(addUser(input[1] , input[2], args[0])) {
+						System.out.println("User adicionado com sucesso");
+					}else {
+						System.out.println("Username j� est� em uso");
+					}
+					break;
+
+				case "edit":
+					if(editUser(input[1], input[2], input[3], args[0])) {
+						System.out.println("Password atualizada com sucesso");
+					}else {
+						System.out.println("Dados atuais incorretos, tente novamente");
+					}
+
+				case "remove":
+					break;
+
+				case "quit":
+					sc.close();
+					System.exit(0); //fecha o programa
+
+				default:
+					System.out.println("Comando invalido, por favor volte a inserir o comando\n\n\n");
+
+					break;
 				}
-				break;
-
-			case "edit":
-				if(editUser(input[1], input[2], input[3], args[0])) {
-					System.out.println("Password atualizada com sucesso");
-				}else {
-					System.out.println("Dados atuais incorretos, tente novamente");
-				}
-
-			case "remove":
-				break;
-
-			case "quit":
-				sc.close();
-				System.exit(0); //fecha o programa
-
-			default:
-				System.out.println("Comando invalido, por favor volte a inserir o comando\n\n\n");
-
-				break;
 			}
-		}
 		}else {
 			sc.close();
 			throw new InvalidKeyException("INVALID PASSWORD!!!");
 		}
-
-
-
 	}
 
-	private static String presentOptions() {
-
-		StringBuilder sb = new StringBuilder();
-
-		sb.append("-----------------------------------------------------------------------------\n");
-		sb.append("add <username> <password> - adiciona conta de utilizador ao servidor\n");
-		sb.append("edit <username> <old password> <new password> - altera a password do utilizador\n");
-		sb.append("remove <username> <password> - remove conta de utilizador do servidor\n");
-		sb.append("quit - sai do programa\n");
-		sb.append("-----------------------------------------------------------------------------\n");
-
-		return sb.toString();
-	}
-	
 	/**
 	 * Devolve uma linha no formato proposto mas com a palavra pass depois do hash j� com salt
 	 * @param userData formato = username:password
@@ -106,15 +87,15 @@ public class UserManager {
 		String pwHashed = new String(hashed);
 		return splitted[0] + ":" + salt + ":" + pwHashed;
 	}
-	
+
 	private static boolean addUser(String username, String password, String managerPW) {
 		File f = new File("users.txt");
-		
+
 		try {
 			BufferedWriter bw = new BufferedWriter(new FileWriter(f.getName()));
 			BufferedReader br = new BufferedReader(new FileReader(f.getName()));
 			String linha;
-			
+
 			while((linha = br.readLine()) != null) {
 				String[] lineSplitted = linha.split(":");
 				if(lineSplitted[0].equals(username)) {
@@ -133,14 +114,14 @@ public class UserManager {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		atualizaMAC(geraMAC(managerPW));
 		return true;
 	}
-	
+
 	private static boolean editUser(String username, String oldPW, String newPW, String managerPW) {
 		File f = new File("users.txt");
-		
+
 		try {
 			BufferedReader br = new BufferedReader(new FileReader(f.getName()));
 			String linha;
@@ -177,9 +158,9 @@ public class UserManager {
 			e.printStackTrace();
 		}
 		return false;
-		
+
 	}
-	
+
 	private static byte[] geraMAC(String managerPW) {
 		byte[] salt = {(byte) 0xc9, (byte) 0x36, (byte) 0x78, (byte) 0x99, (byte) 0x52, 
 				(byte) 0x3e, (byte) 0xea, (byte) 0xf2};
@@ -193,7 +174,7 @@ public class UserManager {
 			kf = SecretKeyFactory.getInstance("PBEWithHmacSHA256AndAES_128");
 			key = kf.generateSecret(keySpec);
 			mac.init(key);
-			
+
 			BufferedReader br = new BufferedReader(new FileReader(f.getName()));
 			String linha;
 			while((linha = br.readLine()) != null) {
@@ -218,16 +199,21 @@ public class UserManager {
 		}
 		return mac.doFinal();
 	}
-	
+
 	private static void atualizaMAC(byte[] mac) {
 		try {
-			FileOutputStream fos = new FileOutputStream("mac1.txt");
+
+			File f = new File("mac.txt");
+			if(f.exists()) {
+				f.delete();
+			}
+
+			FileOutputStream fos = new FileOutputStream("mac.txt");
 			ObjectOutputStream	oos	= new ObjectOutputStream(fos);
 			oos.write(mac);
 			oos.close();
 			fos.close();
-			File file = new File("mac1.txt");
-			file.renameTo(new File("mac.txt"));
+
 		} catch (IllegalStateException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -236,15 +222,16 @@ public class UserManager {
 			e.printStackTrace();
 		}
 	}
-	
+
 	private static boolean validMAC(String pass) throws IOException {
-		
+
 		File f = new File("mac.txt");
-		
+
 		if(f.exists()) {
-			
+
 			BufferedReader br = new BufferedReader(new FileReader(f));
 			byte[] mac = geraMAC(pass);
+
 			if(mac.length != f.length()) {
 				br.close();
 				return false;
@@ -255,14 +242,25 @@ public class UserManager {
 					return false;
 				}
 			}
-			
 			br.close();
-			return true;
-			
+			return true;	
 		}else {
 			atualizaMAC(geraMAC(pass));
 			return true;
 		}
-		
+	}
+	
+	private static String presentOptions() {
+
+		StringBuilder sb = new StringBuilder();
+
+		sb.append("-----------------------------------------------------------------------------\n");
+		sb.append("add <username> <password> - adiciona conta de utilizador ao servidor\n");
+		sb.append("edit <username> <old password> <new password> - altera a password do utilizador\n");
+		sb.append("remove <username> <password> - remove conta de utilizador do servidor\n");
+		sb.append("quit - sai do programa\n");
+		sb.append("-----------------------------------------------------------------------------\n");
+
+		return sb.toString();
 	}
 }

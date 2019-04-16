@@ -12,10 +12,16 @@ import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.crypto.Cipher;
+import javax.crypto.CipherOutputStream;
+import javax.crypto.KeyGenerator;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 import javax.net.ServerSocketFactory;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
@@ -149,41 +155,19 @@ public class MsgFileServer {
 		
 		private void autenticacao(File f, String user, String password, ObjectOutputStream out) throws FileNotFoundException, IOException {
 
-			BufferedReader br = new BufferedReader(new FileReader(f));
+			//Ja faz conforme o que o pedro fez, ou seja no merge aproveitar isto
+			int i = UserManager.validateUser(user, password);
 
-			String userLine = null;
-			String passwordLine = null;
-			StringBuilder linha;
-
-			for(String line; (line = br.readLine()) != null; ) {
-
-				linha = new StringBuilder(line);
-
-				for(int i = 0; i < linha.length(); i++) {
-					if(linha.charAt(i) == ':') {
-						userLine = linha.substring(0, i);
-						passwordLine = linha.substring(userLine.length() + 1);
-						break;
-					}
-				}
-
-				if(user.equals(userLine))
-					break;
-			}
-
-			if(!user.equals(userLine)) {
+			if(i == 0) {
 				System.out.println("Este utilizador nao existe. Assim, vai ser criada uma conta com este username e password");
 				out.writeObject(0);//enviar 0 se o cliente nao existe
-				br.close();
-			}else if(password.equals(passwordLine)) {
+			}else if(i == 1) {
 				System.out.println("Sessao iniciada");
 				out.writeObject(1);//enviar 1 se o cliente existe e a password estiver correta
-				br.close();
 			} else {
 				System.out.println("Passe incorreta, este cliente vai fechar");
 				out.writeObject(-1);//enviar -1 se a password esta incorreta
 				this.socket.close();//para fechar o cliente
-				br.close();
 				return;
 			}
 
@@ -244,22 +228,48 @@ public class MsgFileServer {
 		 * @throws ClassNotFoundException
 		 * @throws IOException
 		 */
-		
+		//Já cifra
 		private void storeFiles(ObjectInputStream inStream, ObjectOutputStream out, String[] splited, String user) throws ClassNotFoundException, IOException {
 
+			KeyGenerator kg;
+			SecretKey key;
+			Cipher c = null;			
+			
 			for(int i = 1; i < splited.length; i++) {
 
 				File f = new File("users/" + user + "/files/" + splited[i]);
 
 				if(!f.exists()) {
-
+					
+					try {
+						kg = KeyGenerator.getInstance("AES");
+						kg.init(128);
+						key =	kg.generateKey();
+						c = Cipher.getInstance("AES");
+						c.init(Cipher.ENCRYPT_MODE, key);
+					} catch (NoSuchAlgorithmException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (InvalidKeyException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (NoSuchPaddingException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					
 					out.writeObject(new Boolean(true));//se ficheiro nao existe envia true de sucesso
 
 					boolean fileClientExist = (boolean)inStream.readObject();
 
 					if(fileClientExist) {
 						
-						FileOutputStream newFile = new FileOutputStream("users/" + user + "/files/" + splited[i]);
+						int index = splited[i].lastIndexOf(".");
+						String fileName = splited[i].substring(0, index);
+						
+						CipherOutputStream cos;
+						FileOutputStream newFile = new FileOutputStream("users/" + user + "/files/" + fileName + ".cif");
+						cos = new CipherOutputStream(newFile, c);
 						byte[] fileByte = new byte[1024];
 						int tamanho;
 						int quantos;
@@ -267,9 +277,9 @@ public class MsgFileServer {
 						while((boolean)inStream.readObject()){//qd recebe false sai do ciclo
 							tamanho = (int)inStream.readObject();
 							quantos = inStream.read(fileByte, 0, tamanho);
-							newFile.write(fileByte);	
+							cos.write(fileByte);	
 						}
-						
+						cos.close();
 						newFile.close();
 						
 						System.out.println("O ficheiro " + splited[i] + " foi adicionado com sucesso");

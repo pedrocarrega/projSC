@@ -28,12 +28,11 @@ public class encryptionAlgorithms {
 	public static String hashingDados(String userData) throws NoSuchAlgorithmException {
 		Random rnd = new Random();
 		int salt = rnd.nextInt();
-		String[] splitted = userData.split(":");
-		String nPW = salt + splitted[2];
+		String nPW = salt + userData;
 		MessageDigest md = MessageDigest.getInstance("SHA");
 		byte[] hashed = md.digest(nPW.getBytes());
 		String pwHashed = new String(hashed);
-		return splitted[0] + ":" + salt + ":" + pwHashed;
+		return salt + ":" + pwHashed;
 	}
 
 	public static byte[] geraMAC(String managerPW) {
@@ -43,19 +42,18 @@ public class encryptionAlgorithms {
 		SecretKeyFactory kf;
 		SecretKey key;
 		Mac mac = null;
-		File f = new File("users.txt");
-		try {
+		
+		try (BufferedReader br = new BufferedReader(new FileReader(new File("users.txt")))){
 			mac	= Mac.getInstance("HmacSHA1");
 			kf = SecretKeyFactory.getInstance("PBEWithHmacSHA256AndAES_128");
 			key = kf.generateSecret(keySpec);
 			mac.init(key);
 
-			BufferedReader br = new BufferedReader(new FileReader(f.getName()));
 			String linha;
 			while((linha = br.readLine()) != null) {
 				mac.update(linha.getBytes());
 			}
-			br.close();
+
 		} catch (NoSuchAlgorithmException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

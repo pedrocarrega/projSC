@@ -94,10 +94,9 @@ public class UserManager {
 	}
 
 	private static boolean editUser(String username, String oldPW, String newPW, String managerPW) {
-		File f = new File("users.txt");
 
-		try {
-			BufferedReader br = new BufferedReader(new FileReader(f.getName()));
+		try (BufferedReader br = new BufferedReader(new FileReader(new File("users.txt")))){
+			
 			String linha;
 			while((linha = br.readLine()) != null) {
 				String[] lineSplitted = linha.split(":");
@@ -134,6 +133,30 @@ public class UserManager {
 		return false;
 
 	}
+	
+	public static int validateUser(String user, String pass) throws IOException, NoSuchAlgorithmException {
+		
+		BufferedReader br = new BufferedReader(new FileReader(new File("users.txt")));
+		
+		while(br.ready()) {
+			String[] splited = br.readLine().split(":");
+			if(splited[0].equals(user)) {
+				String tempPass = encryptionAlgorithms.hashingDados(pass);
+				if(tempPass.substring(tempPass.indexOf(":")).equals(splited[2])) {
+					br.close();
+					return 1;
+				}
+				
+				br.close();
+				return -1;
+			}
+		}
+		
+		br.close();
+		return 0;
+		
+	}
+
 	
 	private static String presentOptions() {
 

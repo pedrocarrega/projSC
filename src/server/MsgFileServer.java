@@ -257,9 +257,6 @@ public class MsgFileServer {
 			KeyGenerator kg;
 			SecretKey key = null;
 			Cipher c = null;
-			KeyPairGenerator kpg;
-			PublicKey ku = null;
-			PrivateKey kr = null;
 
 			
 			for(int i = 1; i < splited.length; i++) {
@@ -298,7 +295,7 @@ public class MsgFileServer {
 						}
 						
 						//guarda a key, ainda por implementar por falta do certificado
-						saveKey(key, splited[i], user);
+						saveFileKey(key, splited[i], user);
 
 						cos.close();
 						newFile.close();

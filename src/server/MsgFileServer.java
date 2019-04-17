@@ -19,10 +19,12 @@ import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.Signature;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
@@ -199,9 +201,10 @@ public class MsgFileServer {
 		 * @throws NoSuchPaddingException 
 		 * @throws NoSuchAlgorithmException 
 		 * @throws InvalidKeyException 
+		 * @throws IllegalBlockSizeException 
 		 */
 		
-		private void trataComando(String comando, ObjectInputStream inStream, ObjectOutputStream outStream, String user) throws IOException, ClassNotFoundException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException {
+		private void trataComando(String comando, ObjectInputStream inStream, ObjectOutputStream outStream, String user) throws IOException, ClassNotFoundException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException {
 
 			String[] splited = comando.split("\\s+");
 
@@ -337,8 +340,8 @@ public class MsgFileServer {
 			keyFile.close();
 		}
 		
-		private Key getFileKey(String fileName, String user) {
-			FileInputStream keyFileInput = new FileInputStream("users/" + user + "/files/" + fileName + ".key");
+		private Key getFileKey(String path) {
+			FileInputStream keyFileInput = new FileInputStream(path + ".key");
 			byte[] wrappedKey = new byte[keyFileInput.available()];
 			keyFileInput.read(wrappedKey);
 			Cipher c1 = Cipher.getInstance("RSA");
@@ -433,11 +436,16 @@ public class MsgFileServer {
 		 * @param splited - input string splited by spaces
 		 * @param user - userID
 		 * @throws IOException
+		 * @throws NoSuchPaddingException 
+		 * @throws NoSuchAlgorithmException 
+		 * @throws InvalidKeyException 
 		 */
 		
 		private void trusted(ObjectInputStream inStream, ObjectOutputStream outStream, String[] splited,
-				String user) throws IOException {
+				String user) throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException {
 
+			File f = null;
+			
 			for(int i = 1; i < splited.length; i++) {
 				System.out.println(splited[i]);
 				boolean teste = userExistsServer(splited[i]);
@@ -446,11 +454,17 @@ public class MsgFileServer {
 						outStream.writeObject(-1);//envia -1 se o user a adicionar ja esta nos trusted
 						System.out.println("O utilizador" + splited[i] + "ja existe nos trustedIDs");
 					} else {
-						File f = new File("users/" + user + "/trustedUsers.txt");
-						FileWriter fw = new FileWriter(f,true);
-						fw.write(splited[i] + "\n");
+						f = new File("users/" + user + "/trustedUsers.txt");
+						FileOutputStream newFile = new FileOutputStream(f);
+						Cipher c = Cipher.getInstance("AES");
+						Key key = getFileKey("users/" + user + "/trustedUsers.txt");
+						c.init(Cipher.ENCRYPT_MODE, key);
+						CipherOutputStream cos = new CipherOutputStream(newFile, c);
+						String print = splited[i] + "\n";
+						cos.write(print.getBytes());
 						System.out.println("O utilizador " + splited[i] + " foi adicionado com sucesso");
-						fw.close();
+						cos.close();
+						newFile.close();
 						outStream.writeObject(1); //envia 1 se e adicionado com sucesso
 					}
 				} else {
@@ -458,6 +472,39 @@ public class MsgFileServer {
 					outStream.writeObject(0);//envia 0 se o user a adicionar nao existe no servidor
 				}
 			}
+			
+			generateSig(user);
+		}
+
+		private void generateSig(String user) {
+			File f = new File("users/" + user + "/trustedUsers.txt");
+			FileInputStream fos = new FileInputStream(f);
+			Cipher c = Cipher.getInstance("AES");
+			Key key = getFileKey(f.getPath());
+			c.init(Cipher.ENCRYPT_MODE, key);
+			CipherInputStream cos = new CipherInputStream(fos, c);
+			//PrivateKey pk = (PrivateKey) … //obtém a chave privada de alguma forma
+			Signature s = Signature.getInstance("MD5withRSA");
+			s.initSign(pk);
+			char letra;
+			StringBuilder sb = new StringBuilder();
+			while(cos.available() != 0) {
+				if((letra = (char)cos.read()) != '\n') {
+					sb.append(letra);
+				}else {
+					s.update(sb.toString().getBytes());
+				}
+			}
+			File sigFile = new File("users/" + user + "/trustedUsers.sig");
+			if(sigFile.exists()) {
+				sigFile.delete();
+			}
+			sigFile = new File("users/" + user + "/trustedUsers.sig");
+			FileOutputStream newFile = new FileOutputStream(f);
+			ObjectOutputStream oos = new ObjectOutputStream(newFile);
+			oos.write(s.sign());
+			
+			
 		}
 
 		/**

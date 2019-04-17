@@ -585,12 +585,14 @@ public class MsgFileServer {
 					StringBuilder sb = new StringBuilder();
 					char letra;
 					
-					
+					//
 					while(cis.available() != 0) {
 						if((letra = (char)cis.read()) != '\n') {
 							sb.append(letra);
 						}else {
-							cos.write(sb.toString().getBytes());
+							if(!sb.toString().equals(splited[i])) {//Se nao foi encontrado o user a remover
+								cos.write(sb.toString().getBytes());//Se é o user a remover ent n entra no if e nao eh escrito no novo ficheiro cifrado
+							}
 							sb.setLength(0);
 						}
 					}

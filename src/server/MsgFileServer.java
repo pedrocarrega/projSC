@@ -279,9 +279,7 @@ public class MsgFileServer {
 
 				if(!f.exists()) {
 					
-						kg = KeyGenerator.getInstance("AES");
-						kg.init(128);
-						key = kg.generateKey();
+						key = generateKey();
 						c = Cipher.getInstance("AES");
 						c.init(Cipher.ENCRYPT_MODE, key);
 
@@ -310,7 +308,7 @@ public class MsgFileServer {
 						
 						//guarda a key, ainda por implementar por falta do certificado
 						saveFileKey(key, splited[i], user);
-
+						
 						cos.close();
 						newFile.close();
 						
@@ -356,7 +354,7 @@ public class MsgFileServer {
 		 * @throws NoSuchPaddingException
 		 * @throws IOException
 		 */
-		private Key getFileKey(String path) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IOException {
+		private SecretKey getFileKey(String path) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IOException {
 			
 			FileInputStream keyFileInput = new FileInputStream(path + ".key");
 			
@@ -364,11 +362,11 @@ public class MsgFileServer {
 			Cipher c1 = Cipher.getInstance("RSA");
 			
 			keyFileInput.read(wrappedKey);
-			PrivateKey pk = getPiK();
+			PublicKey pk = getPuK();
 			c1.init(Cipher.UNWRAP_MODE, pk);
 			keyFileInput.close();
 			
-			return c1.unwrap(wrappedKey, "RSA", Cipher.SECRET_KEY);
+			return (SecretKey)c1.unwrap(wrappedKey, "RSA", Cipher.SECRET_KEY);
 		}
 
 		/**
@@ -461,10 +459,11 @@ public class MsgFileServer {
 		 * @throws NoSuchAlgorithmException 
 		 * @throws InvalidKeyException 
 		 * @throws SignatureException 
+		 * @throws IllegalBlockSizeException 
 		 */
 		
 		private void trusted(ObjectInputStream inStream, ObjectOutputStream outStream, String[] splited,
-				String user) throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, SignatureException {
+				String user) throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, SignatureException, IllegalBlockSizeException {
 
 			File f = null;
 			
@@ -479,8 +478,15 @@ public class MsgFileServer {
 						f = new File("users/" + user + "/trustedUsers.txt");
 						FileOutputStream newFile = new FileOutputStream(f);
 						String print = splited[i] + "\n";
+						SecretKey key;
 						
-						Key key = getFileKey("users/" + user + "/trustedUsers.txt");
+						File keyFile = new File("users/" + user + "/trustedUsers.txt.key");
+						if(keyFile.exists()) {
+							key = getFileKey("users/" + user + "/trustedUsers.txt");
+						}else {
+							key = generateKey();
+							saveFileKey(key, splited[i], user);
+						}
 						
 						Cipher c = Cipher.getInstance("AES");
 						c.init(Cipher.ENCRYPT_MODE, key);
@@ -897,16 +903,42 @@ public class MsgFileServer {
 			return false;
 		}
 		
+		/**
+		 * 
+		 * @return
+		 * @throws NoSuchAlgorithmException
+		 */
+		private SecretKey generateKey() throws NoSuchAlgorithmException {
+			KeyGenerator kg = KeyGenerator.getInstance("AES");
+			kg.init(128);
+			return kg.generateKey();
+		}
+		
+		/**
+		 * 
+		 * @throws KeyStoreException
+		 * @throws NoSuchAlgorithmException
+		 * @throws CertificateException
+		 * @throws FileNotFoundException
+		 * @throws IOException
+		 */
 		private void setKS() throws KeyStoreException, NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException {
 			ks  = KeyStore.getInstance("JKS");
 			ks.load(new FileInputStream("keyStore.jks"), pw.toCharArray());
 		}
 		
+		/**
+		 * 
+		 * @return
+		 */
 		private PrivateKey getPiK(){
 			return (PrivateKey) ks.getKey(alias, pw.toCharArray());			
 		}
 		
-		@SuppressWarnings("deprecation")
+		/**
+		 * 
+		 * @return
+		 */
 		private PublicKey getPuK() {
 			Certificate cert = ks.getCertificate(alias);
 			return cert.getPublicKey();

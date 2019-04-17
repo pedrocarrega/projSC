@@ -20,6 +20,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
+import java.security.SignatureException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -503,11 +504,11 @@ public class MsgFileServer {
 		 */
 		private byte[] generateSig(String user) {
 			File f = new File("users/" + user + "/trustedUsers.txt");
-			FileInputStream fos = new FileInputStream(f);
+			FileInputStream fis = new FileInputStream(f);
 			Cipher c = Cipher.getInstance("AES");
 			Key key = getFileKey(f.getPath());
-			c.init(Cipher.ENCRYPT_MODE, key);
-			CipherInputStream cos = new CipherInputStream(fos, c);
+			c.init(Cipher.DECRYPT_MODE, key);
+			CipherInputStream cos = new CipherInputStream(fis, c);
 			//PrivateKey pk = (PrivateKey) … //obtém a chave privada de alguma forma
 			Signature s = Signature.getInstance("MD5withRSA");
 			s.initSign(pk);
@@ -544,22 +545,33 @@ public class MsgFileServer {
 				if(!userExistsTrusted(splited[i], user)) {
 					outStream.writeObject(-1);//envia -1 se o user a adicionar ja esta nos trusted
 					System.out.println("O utilizador" + splited[i] + "nao existe nos Trusted Users");
-				} else {
-					String currentLine;
+				} else if(verificaSig(user)){
 					File f = new File("users/" + user + "/trustedUsers.txt");
-					File tempFile = new File("users/trustedUsers.txt");
+					File tempFile = new File("users/" + user + "/trustedUsers1.txt");
 					tempFile.createNewFile();
-					FileWriter fw = new FileWriter(tempFile,true);
-					BufferedReader reader = new BufferedReader(new FileReader(f));
-
-					while((currentLine = reader.readLine()) != null) {
-						if(!currentLine.equals(splited[i])) {
-							fw.write(currentLine + "\n");
+					Cipher cInput = Cipher.getInstance("AES");
+					Cipher cOutput = Cipher.getInstance("AES");
+					Key key = getFileKey(f.getPath());
+					cInput.init(Cipher.DECRYPT_MODE, key);
+					cOutput.init(Cipher.ENCRYPT_MODE, key);
+					FileInputStream fis = new FileInputStream(f);
+					FileOutputStream fos = new FileOutputStream(tempFile);
+					CipherInputStream cis = new CipherInputStream(fis, cInput);
+					CipherOutputStream cos = new CipherOutputStream(fos, cOutput);
+					StringBuilder sb = new StringBuilder();
+					char letra;
+					
+					
+					while(cis.available() != 0) {
+						if((letra = (char)cis.read()) != '\n') {
+							sb.append(letra);
+						}else {
+							cos.write(sb.toString().getBytes());
+							sb.setLength(0);
 						}
 					}
-
-					fw.close();
-					reader.close();
+					cis.close();
+					cos.close();
 					f.delete();
 
 					if(tempFile.renameTo(new File("users/" + user + "/trustedUsers.txt"))) {
@@ -567,8 +579,55 @@ public class MsgFileServer {
 					}else {
 						outStream.writeObject(0);
 					}
+				}else {
+					//
+					//Caso em que o ficheiro de trustedUsers foi alterado!
+					//
 				}
 			}
+		}
+
+		private boolean verificaSig(String user) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, SignatureException, IOException {
+			File f = new File("users/" + user + "/trustedUsers.txt");
+			Cipher cInput = Cipher.getInstance("AES");
+			Key key = getFileKey(f.getPath());
+			cInput.init(Cipher.DECRYPT_MODE, key);
+			FileInputStream fis = new FileInputStream(f);
+			CipherInputStream cis = new CipherInputStream(fis, cInput);
+			StringBuilder sb = new StringBuilder();
+			char letra;
+			//PrivateKey pk = (PrivateKey) … //obtém a chave privada de alguma forma
+			Signature s = Signature.getInstance("MD5withRSA");
+			//s.initSign(pk);
+			byte[] sig;
+			
+			while(cis.available() != 0) {
+				if((letra = (char)cis.read()) != '\n') {
+					sb.append(letra);
+				}else {
+					s.update(sb.toString().getBytes());
+					sb.setLength(0);
+				}
+			}
+			
+			sig = s.sign();
+			
+			if(sig.length == f.length()) {
+				for(int i = 0; i < sig.length; i++) {
+					if(sig[i] != cis.read()) {
+						cis.close();
+						fis.close();
+						return false;
+					}
+				}
+			}else {
+				cis.close();
+				fis.close();
+				return false;
+			}
+			cis.close();
+			fis.close();
+			return true;
 		}
 
 		/**

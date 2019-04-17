@@ -45,6 +45,7 @@ import javax.net.ssl.SSLServerSocketFactory;
  *
  */
 
+@SuppressWarnings("deprecation")
 public class MsgFileServer {
 
 	/**

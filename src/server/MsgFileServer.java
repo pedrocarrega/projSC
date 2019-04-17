@@ -623,11 +623,12 @@ public class MsgFileServer {
 			CipherInputStream cis = new CipherInputStream(fis, cInput);
 			StringBuilder sb = new StringBuilder();
 			char letra;
-			//PrivateKey pk = (PrivateKey) … //obtém a chave privada de alguma forma
+			PrivateKey pk = getPiK();
 			Signature s = Signature.getInstance("MD5withRSA");
-			//s.initSign(pk);
+			s.initSign(pk);
 			byte[] sig;
 			
+			//faz update ah signature
 			while(cis.available() != 0) {
 				if((letra = (char)cis.read()) != '\n') {
 					sb.append(letra);
@@ -637,8 +638,10 @@ public class MsgFileServer {
 				}
 			}
 			
+			//Recebe o array de bytes que eh a signature gerada
 			sig = s.sign();
 			
+			//Verifica se as assinaturas sao iguais, se nao entao o ficheiro foi alterado
 			if(sig.length == f.length()) {
 				for(int i = 0; i < sig.length; i++) {
 					if(sig[i] != cis.read()) {

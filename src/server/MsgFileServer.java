@@ -603,6 +603,7 @@ public class MsgFileServer {
 					}else {
 						outStream.writeObject(0);
 					}
+					atualizaSig(generateSig(user), user);
 				}else {
 					//
 					//Caso em que o ficheiro de trustedUsers foi alterado!

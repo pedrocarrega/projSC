@@ -357,13 +357,17 @@ public class MsgFileServer {
 		 * @throws IOException
 		 */
 		private Key getFileKey(String path) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IOException {
+			
 			FileInputStream keyFileInput = new FileInputStream(path + ".key");
+			
 			byte[] wrappedKey = new byte[keyFileInput.available()];
-			keyFileInput.read(wrappedKey);
 			Cipher c1 = Cipher.getInstance("RSA");
+			
+			keyFileInput.read(wrappedKey);
 			PrivateKey pk = getPiK();
 			c1.init(Cipher.UNWRAP_MODE, pk);
 			keyFileInput.close();
+			
 			return c1.unwrap(wrappedKey, "RSA", Cipher.SECRET_KEY);
 		}
 
@@ -474,11 +478,15 @@ public class MsgFileServer {
 					} else {
 						f = new File("users/" + user + "/trustedUsers.txt");
 						FileOutputStream newFile = new FileOutputStream(f);
-						Cipher c = Cipher.getInstance("AES");
+						String print = splited[i] + "\n";
+						
 						Key key = getFileKey("users/" + user + "/trustedUsers.txt");
+						
+						Cipher c = Cipher.getInstance("AES");
 						c.init(Cipher.ENCRYPT_MODE, key);
 						CipherOutputStream cos = new CipherOutputStream(newFile, c);
-						String print = splited[i] + "\n";
+						
+						
 						cos.write(print.getBytes());
 						System.out.println("O utilizador " + splited[i] + " foi adicionado com sucesso");
 						cos.close();

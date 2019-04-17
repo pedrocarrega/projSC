@@ -12,6 +12,7 @@ import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.security.Certificate;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyPair;
@@ -361,8 +362,8 @@ public class MsgFileServer {
 			Cipher c1 = Cipher.getInstance("RSA");
 			PrivateKey pk = getPiK();
 			c1.init(Cipher.UNWRAP_MODE, pk);
+			keyFileInput.close();
 			return c1.unwrap(wrappedKey, "RSA", Cipher.SECRET_KEY);
-			//Falta ir buscar a chave privada ao certificado para dar unwrap da chave
 		}
 
 		/**
@@ -887,11 +888,13 @@ public class MsgFileServer {
 		}
 		
 		private PrivateKey getPiK(){
-			return (PrivateKey) ks.getKey(privateKey_alias, pw.toCharArray());			
+			return (PrivateKey) ks.getKey(alias, pw.toCharArray());			
 		}
 		
+		@SuppressWarnings("deprecation")
 		private PublicKey getPuK() {
-			return (PublicKey) ks.getKey(publicKey_alias, pw.toCharArray());	
+			Certificate cert = ks.getCertificate(alias);
+			return cert.getPublicKey();
 		}
 	}
 }

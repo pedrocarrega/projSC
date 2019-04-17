@@ -171,7 +171,7 @@ public class UserManager {
 
 			while(br.ready()) {
 				String[] data = br.readLine().split(":");
-				removeLineFromFile("users/" + data[0] + "/trustedUsers.txt", data[0], managerPW, "assinatura");
+				removeLineFromFile("users/" + data[0] + "/trustedUsers.txt", user, managerPW, "mac");
 			}
 
 

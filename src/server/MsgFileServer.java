@@ -581,17 +581,22 @@ public class MsgFileServer {
 
 			for(int i = 1; i < splited.length; i++) {
 				if(!userExistsTrusted(splited[i], user)) {
+					
 					outStream.writeObject(-1);//envia -1 se o user a adicionar ja esta nos trusted
 					System.out.println("O utilizador" + splited[i] + "nao existe nos Trusted Users");
-				} else if(verificaSig(user)){
+					
+				} else if(verificaSig("users/" + user + "/trustedUsers.txt")){
+					
 					File f = new File("users/" + user + "/trustedUsers.txt");
 					File tempFile = new File("users/" + user + "/trustedUsers1.txt");
-					tempFile.createNewFile();
 					Cipher cInput = Cipher.getInstance("AES");
 					Cipher cOutput = Cipher.getInstance("AES");
 					Key key = getFileKey(f.getPath());
+					
+					tempFile.createNewFile();
 					cInput.init(Cipher.DECRYPT_MODE, key);
 					cOutput.init(Cipher.ENCRYPT_MODE, key);
+					
 					FileInputStream fis = new FileInputStream(f);
 					FileOutputStream fos = new FileOutputStream(tempFile);
 					CipherInputStream cis = new CipherInputStream(fis, cInput);
@@ -628,19 +633,23 @@ public class MsgFileServer {
 			}
 		}
 
-		private boolean verificaSig(String user) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, SignatureException, IOException {
-			File f = new File("users/" + user + "/trustedUsers.txt");
+		private boolean verificaSig(String path) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, SignatureException, IOException {
+			
+			File f = new File(path);
 			Cipher cInput = Cipher.getInstance("AES");
 			Key key = getFileKey(f.getPath());
-			cInput.init(Cipher.DECRYPT_MODE, key);
 			FileInputStream fis = new FileInputStream(f);
+			
+			cInput.init(Cipher.DECRYPT_MODE, key);
+			
 			CipherInputStream cis = new CipherInputStream(fis, cInput);
 			StringBuilder sb = new StringBuilder();
 			char letra;
 			PrivateKey pk = getPiK();
 			Signature s = Signature.getInstance("MD5withRSA");
-			s.initSign(pk);
 			byte[] sig;
+			
+			s.initSign(pk);
 			
 			//faz update ah signature
 			while(cis.available() != 0) {

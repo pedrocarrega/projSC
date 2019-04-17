@@ -167,11 +167,14 @@ public class UserManager {
 		}else {
 			removeLineFromFile("users.txt", user + ":" + encryptionAlgorithms.hashingDados(pass) + "\n", managerPW, "mac");
 			BufferedReader br = new BufferedReader(new FileReader(new File("users.txt")));
-			BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt")));
+			Files.walk(Paths.get("users/" + user))
+               			.map(Path::toFile)
+                		.sorted((o1, o2) -> -o1.compareTo(o2))
+                		.forEach(File::delete);
 
 			while(br.ready()) {
 				String[] data = br.readLine().split(":");
-				removeLineFromFile("users/" + data[0] + "/trustedUsers.txt", user, managerPW, "mac");
+				removeLineFromFile("users/" + data[0] + "/trustedUsers.txt", user, managerPW, "assinatura");
 			}
 
 
@@ -206,7 +209,6 @@ public class UserManager {
 
 			encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
 			br.close();
-			bw.close();
 
 			return 1;
 

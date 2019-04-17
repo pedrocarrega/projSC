@@ -16,11 +16,14 @@ import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,11 +52,14 @@ public class MsgFileServer {
 	 * @throws IOException
 	 */
 	
+	private String pw;
+	private KeyStore ks;
+	
 	public static void main(String[] args) throws NumberFormatException, IOException {
 
 		System.out.println("servidor: main");
 		MsgFileServer server = new MsgFileServer();
-		server.startServer(args[0]);
+		server.startServer(args[0], args[1]);
 	}
 
 	/**
@@ -64,10 +70,11 @@ public class MsgFileServer {
 	 * @throws IOException
 	 */
 	
-	private void startServer(String args) throws NumberFormatException, IOException {
+	private void startServer(String args, String pw) throws NumberFormatException, IOException {
 
 		//ServerSocket sSoc = null;
 		SSLServerSocket sSoc = null;
+		this.pw = pw;
 		try {
 //			sSoc = new ServerSocket(Integer.parseInt(args));
 			SSoc = new
@@ -127,7 +134,6 @@ public class MsgFileServer {
 				boolean executa = true;
 				
 				while(executa) {
-					//try {
 						String comando = (String)inStream.readObject();//leitura do comando do cliente
 						System.out.println("Comando recebido: " + comando);
 						trataComando(comando, inStream, outStream, user);
@@ -135,11 +141,6 @@ public class MsgFileServer {
 						if(comando.equals("quit")){
 							executa = false;
 						}
-//					} catch (SocketException e) {
-//						executa = false;
-//						socket.close();
-//						System.out.println("O utilizador " + user + " disconectou-se por razoes desconhecidas");
-//					}
 				}
 				
 				socket.close();
@@ -155,6 +156,12 @@ public class MsgFileServer {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (NoSuchPaddingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalBlockSizeException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (SignatureException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
@@ -203,9 +210,10 @@ public class MsgFileServer {
 		 * @throws NoSuchAlgorithmException 
 		 * @throws InvalidKeyException 
 		 * @throws IllegalBlockSizeException 
+		 * @throws SignatureException 
 		 */
 		
-		private void trataComando(String comando, ObjectInputStream inStream, ObjectOutputStream outStream, String user) throws IOException, ClassNotFoundException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException {
+		private void trataComando(String comando, ObjectInputStream inStream, ObjectOutputStream outStream, String user) throws IOException, ClassNotFoundException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, SignatureException {
 
 			String[] splited = comando.split("\\s+");
 
@@ -325,15 +333,11 @@ public class MsgFileServer {
 		 * @throws IllegalBlockSizeException 
 		 */
 		private void saveFileKey(SecretKey key, String fileName, String user) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IOException, IllegalBlockSizeException {
-//			KeyPairGenerator kpg = KeyPairGenerator.getInstance("RSA");
-//			kpg.initialize(1024);              // 1024 bits
-//			KeyPair kp = kpg.generateKeyPair( );
-//			PublicKey ku = kp.getPublic();
-//			PrivateKey kr = kp.getPrivate();
-			
+
 			//ir buscar o certificado que tem a chave publica e privada
 			Cipher c1 = Cipher.getInstance("RSA");
-			c1.init(Cipher.WRAP_MODE, CHAVE_PUBLICA);
+			PublicKey pk = getPuK();
+			c1.init(Cipher.WRAP_MODE, pk);
 			byte[] wrappedKey = c1.wrap(key);
 			
 			FileOutputStream keyFile = new FileOutputStream("users/" + user + "/files/" + fileName + ".key");
@@ -341,12 +345,22 @@ public class MsgFileServer {
 			keyFile.close();
 		}
 		
-		private Key getFileKey(String path) {
+		/**
+		 * 
+		 * @param path
+		 * @return
+		 * @throws InvalidKeyException
+		 * @throws NoSuchAlgorithmException
+		 * @throws NoSuchPaddingException
+		 * @throws IOException
+		 */
+		private Key getFileKey(String path) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IOException {
 			FileInputStream keyFileInput = new FileInputStream(path + ".key");
 			byte[] wrappedKey = new byte[keyFileInput.available()];
 			keyFileInput.read(wrappedKey);
 			Cipher c1 = Cipher.getInstance("RSA");
-			c1.init(Cipher.UNWRAP_MODE, CHAVE_PRIVADA);
+			PrivateKey pk = getPiK();
+			c1.init(Cipher.UNWRAP_MODE, pk);
 			return c1.unwrap(wrappedKey, "RSA", Cipher.SECRET_KEY);
 			//Falta ir buscar a chave privada ao certificado para dar unwrap da chave
 		}
@@ -440,10 +454,11 @@ public class MsgFileServer {
 		 * @throws NoSuchPaddingException 
 		 * @throws NoSuchAlgorithmException 
 		 * @throws InvalidKeyException 
+		 * @throws SignatureException 
 		 */
 		
 		private void trusted(ObjectInputStream inStream, ObjectOutputStream outStream, String[] splited,
-				String user) throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException {
+				String user) throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, SignatureException {
 
 			File f = null;
 			
@@ -501,15 +516,20 @@ public class MsgFileServer {
 		 * 
 		 * @param user
 		 * @return
+		 * @throws InvalidKeyException 
+		 * @throws NoSuchAlgorithmException 
+		 * @throws NoSuchPaddingException 
+		 * @throws IOException 
+		 * @throws SignatureException 
 		 */
-		private byte[] generateSig(String user) {
+		private byte[] generateSig(String user) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, SignatureException, IOException {
 			File f = new File("users/" + user + "/trustedUsers.txt");
 			FileInputStream fis = new FileInputStream(f);
 			Cipher c = Cipher.getInstance("AES");
 			Key key = getFileKey(f.getPath());
 			c.init(Cipher.DECRYPT_MODE, key);
 			CipherInputStream cos = new CipherInputStream(fis, c);
-			//PrivateKey pk = (PrivateKey) … //obtém a chave privada de alguma forma
+			PrivateKey pk = getPiK();
 			Signature s = Signature.getInstance("MD5withRSA");
 			s.initSign(pk);
 			char letra;
@@ -522,6 +542,7 @@ public class MsgFileServer {
 					sb.setLength(0);
 				}
 			}
+			cos.close();
 			return s.sign();			
 		}
 
@@ -536,10 +557,11 @@ public class MsgFileServer {
 		 * @throws NoSuchPaddingException 
 		 * @throws NoSuchAlgorithmException 
 		 * @throws InvalidKeyException 
+		 * @throws SignatureException 
 		 */
 		
 		private void untrusted(ObjectInputStream inStream, ObjectOutputStream outStream, String[] splited,
-				String user) throws IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException {
+				String user) throws IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, SignatureException {
 
 			for(int i = 1; i < splited.length; i++) {
 				if(!userExistsTrusted(splited[i], user)) {
@@ -857,6 +879,19 @@ public class MsgFileServer {
 				e.printStackTrace();
 			}
 			return false;
+		}
+		
+		private void setKS() throws KeyStoreException, NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException {
+			ks  = KeyStore.getInstance("JKS");
+			ks.load(new FileInputStream("keyStore.jks"), pw.toCharArray());
+		}
+		
+		private PrivateKey getPiK(){
+			return (PrivateKey) ks.getKey(privateKey_alias, pw.toCharArray());			
+		}
+		
+		private PublicKey getPuK() {
+			return (PublicKey) ks.getKey(publicKey_alias, pw.toCharArray());	
 		}
 	}
 }

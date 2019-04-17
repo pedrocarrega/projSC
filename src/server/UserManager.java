@@ -221,7 +221,7 @@ public class UserManager {
 
 	}
 	
-	public static boolean removeLineFromFile(String fileName, String remove, String managerPW,boolean type) {
+	public static boolean removeLineFromFile(String fileName, String remove, String managerPW, String type) throws IOException {
 		
 		File temp = new File(fileName);
 		temp.renameTo(new File("temp" + fileName));
@@ -230,11 +230,8 @@ public class UserManager {
 
 		while(br.ready()) {
 			String data = br.readLine();
-			String[] userData = data.split(":");
-			if(!userData[0].equals(username)) {
+			if(!data.equals(remove)) {
 				bw.write(data);
-			}else {
-				bw.write(username + ":" + encryptionAlgorithms.hashingDados(newPW) + "\n");
 			}
 		}
 
@@ -243,17 +240,21 @@ public class UserManager {
 		br.close();
 		bw.close();
 		
-		if(type) {
+		switch (type) {
+		
+		case "mac":
+			
 			encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
 			return true;
-		}else {
-			//faz assinatura (po trusted users file)
-		}
 
+		case "assinatura":
+			
+			//faz assinatura (po trusted users file)
+			return true;
 		
-		
-		
-		
+		default: //nao faz nenhum tipo de encriptacao (qnd queres isto type deve ser null)
+			return true;
+		}
 	}
 
 

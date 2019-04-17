@@ -714,11 +714,16 @@ public class MsgFileServer {
 						
 						outStream.writeObject(1);
 						
+						Cipher cInput = Cipher.getInstance("AES");
+						Key key = getFileKey(f.getPath());
+						
+						cInput.init(Cipher.DECRYPT_MODE, key);
 						FileInputStream fileStream = new FileInputStream(f);
+						CipherInputStream cis = new CipherInputStream(fileStream, cInput);
 						byte[] fileByte = new byte[1024];
 						int aux;
 						
-						while((aux = fileStream.read(fileByte)) != -1){
+						while((aux = cis.read(fileByte)) != -1){
 							outStream.writeObject(new Boolean (true)); //envia true enqt o ciclo esta a correr
 							outStream.writeObject(aux);
 							outStream.write(fileByte, 0, aux);
@@ -726,7 +731,7 @@ public class MsgFileServer {
 						}
 						
 						outStream.writeObject(new Boolean(false));
-						
+						cis.close();
 						fileStream.close();
 						
 					} else {

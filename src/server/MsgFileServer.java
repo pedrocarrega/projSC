@@ -473,10 +473,35 @@ public class MsgFileServer {
 				}
 			}
 			
-			generateSig(user);
+			atualizaSig(generateSig(user), user);
 		}
 
-		private void generateSig(String user) {
+		/**
+		 * 
+		 * @param sig
+		 * @param user
+		 * @throws IOException
+		 */
+		private void atualizaSig(byte[] sig, String user) throws IOException {
+			File f = new File("users/" + user + "/trustedUsers.txt");
+			File sigFile = new File("users/" + user + "/trustedUsers.sig");
+			if(sigFile.exists()) {
+				sigFile.delete();
+			}
+			sigFile = new File("users/" + user + "/trustedUsers.sig");
+			FileOutputStream newFile = new FileOutputStream(f);
+			ObjectOutputStream oos = new ObjectOutputStream(newFile);
+			oos.write(sig);
+			oos.close();
+			newFile.close();			
+		}
+		
+		/**
+		 * 
+		 * @param user
+		 * @return
+		 */
+		private byte[] generateSig(String user) {
 			File f = new File("users/" + user + "/trustedUsers.txt");
 			FileInputStream fos = new FileInputStream(f);
 			Cipher c = Cipher.getInstance("AES");
@@ -495,16 +520,7 @@ public class MsgFileServer {
 					s.update(sb.toString().getBytes());
 				}
 			}
-			File sigFile = new File("users/" + user + "/trustedUsers.sig");
-			if(sigFile.exists()) {
-				sigFile.delete();
-			}
-			sigFile = new File("users/" + user + "/trustedUsers.sig");
-			FileOutputStream newFile = new FileOutputStream(f);
-			ObjectOutputStream oos = new ObjectOutputStream(newFile);
-			oos.write(s.sign());
-			
-			
+			return s.sign();			
 		}
 
 		/**

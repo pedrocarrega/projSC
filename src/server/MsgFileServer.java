@@ -518,6 +518,7 @@ public class MsgFileServer {
 					sb.append(letra);
 				}else {
 					s.update(sb.toString().getBytes());
+					sb.setLength(0);
 				}
 			}
 			return s.sign();			
@@ -531,10 +532,13 @@ public class MsgFileServer {
 		 * @param splited - input string splited by spaces
 		 * @param user - userID
 		 * @throws IOException
+		 * @throws NoSuchPaddingException 
+		 * @throws NoSuchAlgorithmException 
+		 * @throws InvalidKeyException 
 		 */
 		
 		private void untrusted(ObjectInputStream inStream, ObjectOutputStream outStream, String[] splited,
-				String user) throws IOException {
+				String user) throws IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException {
 
 			for(int i = 1; i < splited.length; i++) {
 				if(!userExistsTrusted(splited[i], user)) {
@@ -575,9 +579,12 @@ public class MsgFileServer {
 		 * @param splited - input string splited by spaces
 		 * @param user - userID
 		 * @throws IOException
+		 * @throws NoSuchPaddingException 
+		 * @throws NoSuchAlgorithmException 
+		 * @throws InvalidKeyException 
 		 */
 		
-		private void download(ObjectInputStream inStream, ObjectOutputStream outStream, String[] splited, String user) throws IOException {
+		private void download(ObjectInputStream inStream, ObjectOutputStream outStream, String[] splited, String user) throws IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException {
 			
 			String userID = splited[1];
 			
@@ -634,10 +641,13 @@ public class MsgFileServer {
 		 * @param outStream
 		 * @param splited - input string splited by spaces
 		 * @param user - userID
+		 * @throws NoSuchPaddingException 
+		 * @throws NoSuchAlgorithmException 
+		 * @throws InvalidKeyException 
+		 * @throws IOException 
 		 */
 		
-		private void msg(ObjectInputStream inStream, ObjectOutputStream outStream, String[] splited, String user) {
-			try {
+		private void msg(ObjectInputStream inStream, ObjectOutputStream outStream, String[] splited, String user) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IOException {
 					if(userExistsServer(splited[1]) && !splited[1].equals(user)) {
 						File mail = new File("users/" + splited[1] + "/inbox.txt");
 						StringBuilder msg = new StringBuilder();
@@ -660,11 +670,6 @@ public class MsgFileServer {
 					}else {
 						outStream.writeObject(-2);
 					}
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
 		}
 
 		/**
@@ -723,31 +728,36 @@ public class MsgFileServer {
 		 * @return true in case the logged in user is trusted, false otherwise
 		 * 
 		 * @throws IOException
+		 * @throws NoSuchPaddingException 
+		 * @throws NoSuchAlgorithmException 
+		 * @throws InvalidKeyException 
 		 */
 		
-		private boolean userExistsTrusted(String userAdd, String userClient) throws IOException {
-
-			try {
-				File f = new File("users/" + userClient + "/trustedUsers.txt");
-				BufferedReader br = new BufferedReader(new FileReader(f.getCanonicalPath()));
-				String line = br.readLine();
-				String userName;
-
-				while(line != null) {
-					userName = line;
-					if(userName.equals(userAdd)) {
-						br.close();
+		private boolean userExistsTrusted(String userAdd, String userClient) throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException {
+			
+			File f = new File("users/" + userClient + "/trustedUsers.txt");
+			char letra;
+			FileInputStream newFile = new FileInputStream(f);
+			Cipher c = Cipher.getInstance("AES");
+			Key key = getFileKey("users/" + userClient + "/trustedUsers.txt");
+			c.init(Cipher.ENCRYPT_MODE, key);
+			CipherInputStream cos = new CipherInputStream(newFile, c);
+			StringBuilder sb = new StringBuilder();
+				
+			while(cos.available() != 0) {
+				if((letra = (char)cos.read()) != '\n') {
+					sb.append(letra);
+				}else {
+					if(sb.toString().equals(userAdd)) {
+						cos.close();
+						newFile.close();
 						return true;
 					}
-					line = br.readLine();
+					sb.setLength(0);
 				}
-				br.close();
-				return false;
-
-			} catch (FileNotFoundException e) {
-				System.out.println("Erro em userExists, o ficheiro userTrusted nao existe no servidor");
-				e.printStackTrace();
 			}
+			cos.close();
+			newFile.close();
 			return false;
 		}
 

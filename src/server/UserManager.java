@@ -134,6 +134,14 @@ public class UserManager {
 
 	}
 	
+	/**
+	 * 
+	 * @param user
+	 * @param pass
+	 * @return
+	 * @throws IOException
+	 * @throws NoSuchAlgorithmException
+	 */
 	public static int validateUser(String user, String pass) throws IOException, NoSuchAlgorithmException {
 		
 		BufferedReader br = new BufferedReader(new FileReader(new File("users.txt")));

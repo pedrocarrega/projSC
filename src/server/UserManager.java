@@ -2,17 +2,39 @@ package server;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.Certificate;
 import java.security.InvalidKeyException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.SignatureException;
+import java.security.cert.CertificateException;
 import java.util.Scanner;
 
+import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.KeyGenerator;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+
+@SuppressWarnings("deprecation")
 public class UserManager {
+
+	private KeyStore ks;
 
 	public static void main(String[] args){
 
@@ -171,9 +193,9 @@ public class UserManager {
 			removeLineFromFile("users.txt", user + ":" + encryptionAlgorithms.hashingDados(pass) + "\n", managerPW, "mac");
 			BufferedReader br = new BufferedReader(new FileReader(new File("users.txt")));
 			Files.walk(Paths.get("users/" + user))
-               			.map(Path::toFile)
-                		.sorted((o1, o2) -> -o1.compareTo(o2))
-                		.forEach(File::delete);
+			.map(Path::toFile)
+			.sorted((o1, o2) -> -o1.compareTo(o2))
+			.forEach(File::delete);
 
 			while(br.ready()) {
 				String[] data = br.readLine().split(":");
@@ -276,6 +298,229 @@ public class UserManager {
 		default: //nao faz nenhum tipo de encriptacao (qnd queres isto type deve ser null)
 			return true;
 		}
+	}
+
+	/**
+	 * 
+	 * @return
+	 * @throws NoSuchAlgorithmException
+	 */
+	private SecretKey generateKey() throws NoSuchAlgorithmException {
+		KeyGenerator kg = KeyGenerator.getInstance("AES");
+		kg.init(128);
+		return kg.generateKey();
+	}
+
+	/**
+	 * 
+	 * @throws KeyStoreException
+	 * @throws NoSuchAlgorithmException
+	 * @throws CertificateException
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
+	private void setKS(String pw) throws KeyStoreException, NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException {
+		ks  = KeyStore.getInstance("JKS");
+		ks.load(new FileInputStream("keyStore.jks"), pw.toCharArray());
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	private PrivateKey getPiK(String pw){
+		return (PrivateKey) ks.getKey(alias, pw.toCharArray());			
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	private PublicKey getPuK() {
+		Certificate cert = ks.getCertificate(alias);
+		return cert.getPublicKey();
+	}
+
+	/**
+	 * 
+	 * @param key
+	 * @param fileName
+	 * @param user
+	 * @throws NoSuchAlgorithmException
+	 * @throws NoSuchPaddingException 
+	 * @throws InvalidKeyException 
+	 * @throws IOException 
+	 * @throws IllegalBlockSizeException 
+	 */
+	private void saveFileKey(SecretKey key, String path) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IOException, IllegalBlockSizeException {
+
+		//ir buscar o certificado que tem a chave publica e privada
+		Cipher c1 = Cipher.getInstance("RSA");
+		PublicKey pk = getPuK();
+		c1.init(Cipher.WRAP_MODE, pk);
+		byte[] wrappedKey = c1.wrap(key);
+
+		File kFile = new File(path);
+		kFile.createNewFile();
+		FileOutputStream keyOutputFile = new FileOutputStream(kFile);
+		keyOutputFile.write(wrappedKey);
+		keyOutputFile.close();
+	}
+
+	/**
+	 * 
+	 * @param path
+	 * @return
+	 * @throws InvalidKeyException
+	 * @throws NoSuchAlgorithmException
+	 * @throws NoSuchPaddingException
+	 * @throws IOException
+	 * @throws IllegalBlockSizeException 
+	 */
+	private SecretKey getFileKey(String path) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IOException, IllegalBlockSizeException {
+
+		File keyFile = new File(path + ".key");
+		if(keyFile.exists()) {
+			FileInputStream keyFileInput = new FileInputStream(path + ".key");
+
+			byte[] wrappedKey = new byte[keyFileInput.available()];
+			Cipher c1 = Cipher.getInstance("RSA");
+
+			keyFileInput.read(wrappedKey);
+			PublicKey pk = getPuK();
+			c1.init(Cipher.UNWRAP_MODE, pk);
+			keyFileInput.close();
+
+			return (SecretKey)c1.unwrap(wrappedKey, "RSA", Cipher.SECRET_KEY);
+		}else {
+			keyFile.createNewFile();
+			SecretKey key = generateKey();
+			Cipher c = Cipher.getInstance("AES");
+			c.init(Cipher.ENCRYPT_MODE, key);
+
+			saveFileKey(key, path);
+
+			return key;
+		}	
+	}
+
+	/**
+	 * 
+	 * @param path
+	 * @return
+	 * @throws NoSuchAlgorithmException
+	 * @throws NoSuchPaddingException
+	 * @throws InvalidKeyException
+	 * @throws SignatureException
+	 * @throws IOException
+	 * @throws IllegalBlockSizeException
+	 */
+	private boolean verificaSig(String path, String managerPW) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, SignatureException, IOException, IllegalBlockSizeException {
+
+		File f = new File(path);
+		Cipher cInput = Cipher.getInstance("AES");
+		SecretKey key = getFileKey(f.getPath());
+		FileInputStream fis = new FileInputStream(f);
+
+		cInput.init(Cipher.DECRYPT_MODE, key);
+
+		CipherInputStream cis = new CipherInputStream(fis, cInput);
+		StringBuilder sb = new StringBuilder();
+		char letra;
+		PrivateKey pk = getPiK(managerPW);
+		Signature s = Signature.getInstance("MD5withRSA");
+		byte[] sig;
+
+		s.initSign(pk);
+
+		//faz update ah signature
+		while(cis.available() != 0) {
+			if((letra = (char)cis.read()) != '\n') {
+				sb.append(letra);
+			}else {
+				s.update(sb.toString().getBytes());
+				sb.setLength(0);
+			}
+		}
+
+		//Recebe o array de bytes que eh a signature gerada
+		sig = s.sign();
+		String pathSig = path.substring(0, path.length() - 3);
+		f = new File(pathSig);
+		fis = new FileInputStream(f);
+
+		//Verifica se as assinaturas sao iguais, se nao entao o ficheiro foi alterado
+		if(sig.length == f.length()) {
+			for(int i = 0; i < sig.length; i++) {
+				if(sig[i] != fis.read()) {
+					cis.close();
+					fis.close();
+					return false;
+				}
+			}
+		}else {
+			cis.close();
+			fis.close();
+			return false;
+		}
+		cis.close();
+		fis.close();
+		return true;
+	}
+
+	/**
+	 * 
+	 * @param sig
+	 * @param user
+	 * @throws IOException
+	 */
+	private void atualizaSig(byte[] sig, String user) throws IOException {
+		File f = new File("users/" + user + "/trustedUsers.txt");
+		File sigFile = new File("users/" + user + "/trustedUsers.sig");
+		if(sigFile.exists()) {
+			sigFile.delete();
+		}
+		sigFile = new File("users/" + user + "/trustedUsers.sig");
+		FileOutputStream newFile = new FileOutputStream(f);
+		ObjectOutputStream oos = new ObjectOutputStream(newFile);
+		oos.write(sig);
+		oos.close();
+		newFile.close();			
+	}
+
+	/**
+	 * 
+	 * @param user
+	 * @return
+	 * @throws InvalidKeyException 
+	 * @throws NoSuchAlgorithmException 
+	 * @throws NoSuchPaddingException 
+	 * @throws IOException 
+	 * @throws SignatureException 
+	 * @throws IllegalBlockSizeException 
+	 */
+	private byte[] generateSig(String user, String managerPW) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, SignatureException, IOException, IllegalBlockSizeException {
+		File f = new File("users/" + user + "/trustedUsers.txt");
+		FileInputStream fis = new FileInputStream(f);
+		Cipher c = Cipher.getInstance("AES");
+		SecretKey key = getFileKey(f.getPath());
+		c.init(Cipher.DECRYPT_MODE, key);
+		CipherInputStream cos = new CipherInputStream(fis, c);
+		PrivateKey pk = getPiK(managerPW);
+		Signature s = Signature.getInstance("MD5withRSA");
+		s.initSign(pk);
+		char letra;
+		StringBuilder sb = new StringBuilder();
+		while(cos.available() != 0) {
+			if((letra = (char)cos.read()) != '\n') {
+				sb.append(letra);
+			}else {
+				s.update(sb.toString().getBytes());
+				sb.setLength(0);
+			}
+		}
+		cos.close();
+		return s.sign();			
 	}
 
 

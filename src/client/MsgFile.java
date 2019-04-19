@@ -307,8 +307,10 @@ public class MsgFile {
 				System.out.println("O utilizador" + splited[i] + "ja esta na sua lista de amigos");
 			} else if (sucesso == 1){
 				System.out.println("O utilizador " + splited[i] + " foi adicionado com sucesso");
-			} else {
+			} else if(sucesso == 0){
 				System.out.println("O utilizador " + splited[i] + " nao existe no servidor");
+			}else {
+				System.out.println("Problemas no servidor, tente mais tarde");
 			}
 		}
 	}
@@ -332,8 +334,10 @@ public class MsgFile {
 				System.out.println("O utilizador" + splited[i] + "nao existe nos Trusted Users");
 			} else if (sucesso == 1){
 				System.out.println("O utilizador " + splited[i] + " foi removido com sucesso");
-			} else {
-				System.out.println("Erro!");
+			} else if(sucesso == 0){
+				System.out.println("O utilizador" + splited[i] + "nao existe no servidor");
+			}else {
+				System.out.println("Problemas no servidor, tente mais tarde");
 			}
 		}
 	}
@@ -356,9 +360,11 @@ public class MsgFile {
 			System.out.println("A mensagem foi enviada para " + splited[1] + " com sucesso");
 		} else if(sucesso == -2){
 			System.out.println("O utilizador " + splited[1] + "nao e seu amigo");
-		}else {
+		}else if(sucesso == 0){
 			System.out.println("Introduziu o seu id como um dos destinatarios");
-		}		
+		}else {
+			System.out.println("Erro, tente mais tarde");
+		}
 	}
 	/**
 	 * Este metodo escreve todas as mensagens que foram enviadas ao cliente na consola
@@ -411,8 +417,10 @@ public class MsgFile {
 			System.out.println("O ficheiro " + splited [2] + " nao existe no servidor");
 		} else if(sucesso == -1) {
 			System.out.println("O utilizador " + splited[1] + " nao o tem adicionado como amigo");
-		} else {
+		} else if(sucesso == -2){
 			System.out.println("O utilizador " + splited[1] + " nao existe no servidor" );
+		}else {
+			System.out.println("Erro, tente mais tarde");
 		}
 	}
 

@@ -23,7 +23,9 @@ import javax.net.ssl.SSLSocketFactory;
  */
 public class MsgFile {
 	public static void main(String[] args) throws NumberFormatException, UnknownHostException, IOException, ClassNotFoundException {
-
+		
+		//System.setProperty("javax.net.ssl.trustStore", "truststore.cliente");
+		
 		StringBuilder argumentos = new StringBuilder(args[0]);
 		String adress = null;
 

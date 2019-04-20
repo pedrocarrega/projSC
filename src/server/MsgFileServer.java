@@ -12,10 +12,13 @@ import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.security.Provider;
+import java.security.Security;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.net.ServerSocketFactory;
+import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 
@@ -35,6 +38,11 @@ public class MsgFileServer {
 	
 	public static void main(String[] args) throws NumberFormatException, IOException {
 
+		//Security.addProvider(new Provider());
+
+		System.setProperty("javax.net.ssl.keyStore", "myKeyStore.jks");
+		System.setProperty("javax.net.ssl.keyStorePassword", "grupo20");
+		
 		System.out.println("servidor: main");
 		MsgFileServer server = new MsgFileServer();
 		server.startServer(args[0]);
@@ -50,29 +58,33 @@ public class MsgFileServer {
 	
 	private void startServer(String args) throws NumberFormatException, IOException {
 
-		//ServerSocket sSoc = null;
-		SSLServerSocket sSoc = null;
+		Socket sSoc = null;
+		//SSLServerSocket sSoc = null;
+		SSLServerSocketFactory sslServerSocketFactory = 
+                (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
 		try {
 			//sSoc = new ServerSocket(Integer.parseInt(args));
 			//sSoc = new SSLSimpleServer(Integer.parseInt(args));
-			ServerSocketFactory ssf = SSLServerSocketFactory.getDefault( );
-			sSoc = (SSLServerSocket) ssf.createServerSocket(Integer.parseInt(args));
+			//SSLServerSocketFactory ssf = (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
+			//SSLServerSocket sslServerSocket = (SSLServerSocket)ssf.createServerSocket(Integer.parseInt(args));
+			//sSoc = sslServerSocket;
+			//sSoc = (SSLServerSocket) ssf.createServerSocket(Integer.parseInt(args));
+			ServerSocket sslServerSocket = 
+                    sslServerSocketFactory.createServerSocket(Integer.parseInt(args));
+			sSoc = sslServerSocket.accept();
 		} catch (IOException e) {
 			System.err.println(e.getMessage());
 			System.exit(-1);
 		}
 
 		while(true) {
-			try {
-				new SSLSimpleServer(sSoc.accept()).start( );
-				
-				//Socket inSoc = sSoc.accept();
-				//ServerThread newServerThread = new ServerThread(inSoc);
-				//newServerThread.start();
-			}
-			catch (IOException e) {
-				e.printStackTrace();
-			}
+			//new SSLSimpleServer(sSoc.accept()).start( );
+			//SSLSocket sslSocket = (SSLSocket)sSoc.accept();
+			//Socket inSoc = sSoc.accept();
+			//ServerThread newServerThread = new ServerThread(inSoc);
+			//newServerThread.start();
+			SSLSimpleServer newSSLServerThread = new SSLSimpleServer(sSoc);
+			newSSLServerThread.start();
 		}
 	}
 	

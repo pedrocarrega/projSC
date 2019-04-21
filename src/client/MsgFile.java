@@ -6,11 +6,14 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ConnectException;
-import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 
 /**
  * 
@@ -19,7 +22,9 @@ import java.util.Scanner;
  */
 public class MsgFile {
 	public static void main(String[] args) throws NumberFormatException, UnknownHostException, IOException, ClassNotFoundException {
-
+		
+		//System.setProperty("javax.net.ssl.trustStore", "truststore.cliente");
+		
 		StringBuilder argumentos = new StringBuilder(args[0]);
 		String adress = null;
 
@@ -30,8 +35,10 @@ public class MsgFile {
 			}
 		}
 		try {
+			SocketFactory sf = SSLSocketFactory.getDefault( );
 			String port = argumentos.substring(adress.length() + 1);
-			Socket echoSocket = new Socket(adress, Integer.parseInt(port));
+			SSLSocket s = (SSLSocket) sf.createSocket(adress, Integer.parseInt(port));
+			//Socket echoSocket = new Socket(adress, Integer.parseInt(port));
 			String user = args[1];
 			String password = null;
 			Scanner sc = new Scanner(System.in);
@@ -43,8 +50,8 @@ public class MsgFile {
 				password = sc.nextLine();
 			}
 
-			ObjectInputStream in = new ObjectInputStream(echoSocket.getInputStream());
-			ObjectOutputStream out = new ObjectOutputStream(echoSocket.getOutputStream());
+			ObjectInputStream in = new ObjectInputStream(s.getInputStream());
+			ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
 
 			out.writeObject(user);
 			out.writeObject(password);
@@ -53,7 +60,7 @@ public class MsgFile {
 
 			if(successLog == -1) {
 				System.out.println("Passe incorreta, o programa vai fechar");
-				echoSocket.close();
+				s.close();
 				sc.close();
 				return;
 			} else if(successLog == 0) {
@@ -78,7 +85,7 @@ public class MsgFile {
 			}
 
 			sc.close();
-			echoSocket.close();
+			s.close();
 			in.close();
 			out.close();
 		} catch (ConnectException e){
@@ -307,10 +314,8 @@ public class MsgFile {
 				System.out.println("O utilizador" + splited[i] + "ja esta na sua lista de amigos");
 			} else if (sucesso == 1){
 				System.out.println("O utilizador " + splited[i] + " foi adicionado com sucesso");
-			} else if(sucesso == 0){
+			} else {
 				System.out.println("O utilizador " + splited[i] + " nao existe no servidor");
-			}else {
-				System.out.println("Problemas no servidor, tente mais tarde");
 			}
 		}
 	}
@@ -334,10 +339,8 @@ public class MsgFile {
 				System.out.println("O utilizador" + splited[i] + "nao existe nos Trusted Users");
 			} else if (sucesso == 1){
 				System.out.println("O utilizador " + splited[i] + " foi removido com sucesso");
-			} else if(sucesso == 0){
-				System.out.println("O utilizador" + splited[i] + "nao existe no servidor");
-			}else {
-				System.out.println("Problemas no servidor, tente mais tarde");
+			} else {
+				System.out.println("Erro!");
 			}
 		}
 	}
@@ -360,11 +363,9 @@ public class MsgFile {
 			System.out.println("A mensagem foi enviada para " + splited[1] + " com sucesso");
 		} else if(sucesso == -2){
 			System.out.println("O utilizador " + splited[1] + "nao e seu amigo");
-		}else if(sucesso == 0){
-			System.out.println("Introduziu o seu id como um dos destinatarios");
 		}else {
-			System.out.println("Erro, tente mais tarde");
-		}
+			System.out.println("Introduziu o seu id como um dos destinatarios");
+		}		
 	}
 	/**
 	 * Este metodo escreve todas as mensagens que foram enviadas ao cliente na consola
@@ -417,10 +418,8 @@ public class MsgFile {
 			System.out.println("O ficheiro " + splited [2] + " nao existe no servidor");
 		} else if(sucesso == -1) {
 			System.out.println("O utilizador " + splited[1] + " nao o tem adicionado como amigo");
-		} else if(sucesso == -2){
+		} else {
 			System.out.println("O utilizador " + splited[1] + " nao existe no servidor" );
-		}else {
-			System.out.println("Erro, tente mais tarde");
 		}
 	}
 

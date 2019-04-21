@@ -24,6 +24,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.List;
@@ -59,6 +60,14 @@ public class MsgFileServer {
 	
 	public static void main(String[] args) throws NumberFormatException, IOException {
 
+		//Security.addProvider(new Provider());
+
+		System.setProperty("javax.net.ssl.keyStore", "myServer.keyStore");
+		System.setProperty("javax.net.ssl.keyStorePassword", "123456789");
+		//System.setProperty("javax.net.ssl.keyStoreType", "JCEKS");
+
+
+		
 		System.out.println("servidor: main");
 		MsgFileServer server = new MsgFileServer();
 		server.startServer(args[0], args[1]);
@@ -72,31 +81,35 @@ public class MsgFileServer {
 	 * @throws IOException
 	 */
 	
-	private void startServer(String args, String pw) throws NumberFormatException, IOException {
+	private void startServer(String porto, String pw) throws NumberFormatException, IOException {
 
-		//ServerSocket sSoc = null;
-		SSLServerSocket sSoc = null;
-		this.pw = pw;
+		Socket sSoc = null;
+		//SSLServerSocket sSoc = null;
+		SSLServerSocketFactory sslServerSocketFactory = 
+                (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
 		try {
-//			sSoc = new ServerSocket(Integer.parseInt(args));
-			SSoc = new
-			ServerSocketFactory ssf = SSLServerSocketFactory.getDefault( );
-			SSLServerSocket ss = (SSLServerSocket) ssf.createServerSocket(Integer.parseInt(args));
+			//sSoc = new ServerSocket(Integer.parseInt(args));
+			//sSoc = new SSLSimpleServer(Integer.parseInt(args));
+			//SSLServerSocketFactory ssf = (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
+			//SSLServerSocket sslServerSocket = (SSLServerSocket)ssf.createServerSocket(Integer.parseInt(args));
+			//sSoc = sslServerSocket;
+			//sSoc = (SSLServerSocket) ssf.createServerSocket(Integer.parseInt(args));
+			ServerSocket sslServerSocket = 
+                    sslServerSocketFactory.createServerSocket(Integer.parseInt(porto));
+			sSoc = sslServerSocket.accept();
 		} catch (IOException e) {
 			System.err.println(e.getMessage());
 			System.exit(-1);
 		}
 
 		while(true) {
-			try {
-				SSLServerSocket inSoc = new SSLSimpleServer(ss.accept()).start( );
-				//Socket inSoc = sSoc.accept();
-				ServerThread newServerThread = new ServerThread(inSoc);
-				newServerThread.start();
-			}
-			catch (IOException e) {
-				e.printStackTrace();
-			}
+			//new SSLSimpleServer(sSoc.accept()).start( );
+			//SSLSocket sslSocket = (SSLSocket)sSoc.accept();
+			//Socket inSoc = sSoc.accept();
+			//ServerThread newServerThread = new ServerThread(inSoc);
+			//newServerThread.start();
+			SSLSimpleServer newSSLServerThread = new SSLSimpleServer(sSoc);
+			newSSLServerThread.start();
 		}
 	}
 	
@@ -198,7 +211,7 @@ public class MsgFileServer {
 			}
 			System.out.println("Este utilizador nao existe. Fale com o manager para que lhe seja criada uma conta");
 			out.writeObject(0);//enviar 0 se o cliente nao existe
-			//mudar este caso para que o cliente agora saiba que ao receber 0 então sabe que tem de falar com o manager
+			//mudar este caso para que o cliente agora saiba que ao receber 0 entï¿½o sabe que tem de falar com o manager
 		}
 		
 		/**
@@ -334,7 +347,7 @@ public class MsgFileServer {
 			List<String> result = new ArrayList<String>();
 
 			for (int i = 0; i < listOfFiles.length; i++) {
-				if (listOfFiles[i].isFile() && !listOfFiles[i].getName().contains(".key")) {//tem de se confirmar se ele não devolve o nome dos ficheiros .key
+				if (listOfFiles[i].isFile() && !listOfFiles[i].getName().contains(".key")) {//tem de se confirmar se ele nï¿½o devolve o nome dos ficheiros .key
 					result.add(listOfFiles[i].getName());
 				}
 			}
@@ -450,7 +463,7 @@ public class MsgFileServer {
 						outStream.writeObject(1); //envia 1 se e adicionado com sucesso
 					}
 				} else {
-					System.out.println("O ficheiro foi alterado por alguém sem permissões");
+					System.out.println("O ficheiro foi alterado por alguï¿½m sem permissï¿½es");
 					outStream.writeObject(-2);
 					avaliador = false;
 				}
@@ -484,7 +497,7 @@ public class MsgFileServer {
 			for(int i = 1; i < splited.length; i++) {
 				if(integridade = !verificaSig("users/" + user + "/trustedUsers.txt") || !encryptionAlgorithms.validMAC(pw)) {
 					outStream.writeObject(-2);//envia -1 se o user a adicionar ja esta nos trusted
-					System.out.println("Um dos ficheiros foi alterado por alguem sem permissões");
+					System.out.println("Um dos ficheiros foi alterado por alguem sem permissï¿½es");
 					break;
 				}else if(!integridade && (bol = !userExistsServer(splited[i]))) {
 					outStream.writeObject(0);//envia -1 se o user a adicionar ja esta nos trusted
@@ -519,7 +532,7 @@ public class MsgFileServer {
 							sb.append(letra);
 						}else {
 							if(!sb.toString().equals(splited[i])) {//Se nao foi encontrado o user a remover
-								cos.write(sb.toString().getBytes());//Se é o user a remover ent n entra no if e nao eh escrito no novo ficheiro cifrado
+								cos.write(sb.toString().getBytes());//Se ï¿½ o user a remover ent n entra no if e nao eh escrito no novo ficheiro cifrado
 							}
 							sb.setLength(0);
 						}
@@ -833,15 +846,26 @@ public class MsgFileServer {
 		 */
 		private void setKS() throws KeyStoreException, NoSuchAlgorithmException, CertificateException, FileNotFoundException, IOException {
 			ks  = KeyStore.getInstance("JKS");
-			ks.load(new FileInputStream("keyStore.jks"), pw.toCharArray());
+			ks.load(new FileInputStream("myServer.keystore"), pw.toCharArray());
 		}
 		
 		/**
 		 * 
 		 * @return
+		 * @throws NoSuchAlgorithmException
 		 */
-		private PrivateKey getPiK(){
-			return (PrivateKey) ks.getKey(alias, pw.toCharArray());			
+		private PrivateKey getPiK() throws NoSuchAlgorithmException{
+			PrivateKey pk = null;
+			try {
+				pk =  (PrivateKey) ks.getKey("myServer", pw.toCharArray());
+			} catch (KeyStoreException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (UnrecoverableKeyException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}	
+			return pk;
 		}
 		
 		/**
@@ -849,7 +873,13 @@ public class MsgFileServer {
 		 * @return
 		 */
 		private PublicKey getPuK() {
-			Certificate cert = ks.getCertificate(alias);
+			Certificate cert = null;
+			try {
+				cert = (Certificate) ks.getCertificate("myServer");
+			} catch (KeyStoreException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 			return cert.getPublicKey();
 		}
 		

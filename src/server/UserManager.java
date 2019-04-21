@@ -145,6 +145,13 @@ public class UserManager {
 		}
 		bw.write(username + ":" + encryptionAlgorithms.hashingDados(password) + "\n");
 
+		File folder = new File("users/" + username + "/files");
+		folder.mkdirs();
+		folder = new File("users/" + username + "/inbox.txt");
+		folder.createNewFile();
+		folder = new File("users/" + username + "/trustedUsers.txt");
+		folder.createNewFile();
+
 
 
 		encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
@@ -207,7 +214,7 @@ public class UserManager {
 			.map(Path::toFile)
 			.sorted((o1, o2) -> -o1.compareTo(o2))
 			.forEach(File::delete);
-			
+
 			while(br.ready()) {
 				String[] dados = br.readLine().split(":");
 				if(!verificaSig("users/" + dados[0] + "/trustedUsers.txt", managerPW) || !encryptionAlgorithms.validMAC(managerPW)) {
@@ -215,24 +222,24 @@ public class UserManager {
 					br.close();
 					return -2;
 				}else {
-					
+
 					File f = new File("users/" + dados[0] + "/trustedUsers.txt");
 					File tempFile = new File("users/" + dados[0] + "/trustedUsers1.txt");
 					Cipher cInput = Cipher.getInstance("AES");
 					Cipher cOutput = Cipher.getInstance("AES");
 					Key key = getFileKey(f.getPath());
-					
+
 					tempFile.createNewFile();
 					cInput.init(Cipher.DECRYPT_MODE, key);
 					cOutput.init(Cipher.ENCRYPT_MODE, key);
-					
+
 					FileInputStream fis = new FileInputStream(f);
 					FileOutputStream fos = new FileOutputStream(tempFile);
 					CipherInputStream cis = new CipherInputStream(fis, cInput);
 					CipherOutputStream cos = new CipherOutputStream(fos, cOutput);
 					StringBuilder sb = new StringBuilder();
 					char letra;
-					
+
 					while(cis.available() != 0) {
 						if((letra = (char)cis.read()) != '\n') {
 							sb.append(letra);
@@ -259,10 +266,10 @@ public class UserManager {
 				}
 			}
 
-//			while(br.ready()) {
-//				String[] data = br.readLine().split(":");
-//				removeLineFromFile("users/" + data[0] + "/trustedUsers.txt", user, managerPW, "assinatura");
-//			}
+			//			while(br.ready()) {
+			//				String[] data = br.readLine().split(":");
+			//				removeLineFromFile("users/" + data[0] + "/trustedUsers.txt", user, managerPW, "assinatura");
+			//			}
 
 
 			//			File temp = new File("users.txt");
@@ -354,7 +361,7 @@ public class UserManager {
 
 		case "assinatura":
 
-			
+
 			return true;
 
 		default: //nao faz nenhum tipo de encriptacao (qnd queres isto type deve ser null)

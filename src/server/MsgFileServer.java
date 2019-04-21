@@ -40,8 +40,10 @@ public class MsgFileServer {
 
 		//Security.addProvider(new Provider());
 
-		System.setProperty("javax.net.ssl.keyStore", "myKeyStore.jks");
+		System.setProperty("javax.net.ssl.keyStore", "myServer.keyStore");
 		System.setProperty("javax.net.ssl.keyStorePassword", "grupo20");
+
+
 		
 		System.out.println("servidor: main");
 		MsgFileServer server = new MsgFileServer();

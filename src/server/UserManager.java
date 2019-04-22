@@ -50,7 +50,7 @@ public class UserManager {
 
 			if(encryptionAlgorithms.validMAC(managerPW)) {
 				
-				pwKs = args[0];
+				pwKs = sc.nextLine();
 				ks = KeyStore.getInstance("JKS");
 				ks.load(new FileInputStream("keyStore.jks"), pwKs.toCharArray());
 

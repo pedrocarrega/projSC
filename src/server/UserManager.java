@@ -3,7 +3,6 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -23,7 +22,7 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
-import java.security.cert.CertificateException;
+import java.security.UnrecoverableKeyException;
 import java.util.Scanner;
 
 import javax.crypto.Cipher;
@@ -38,6 +37,7 @@ import javax.crypto.SecretKey;
 public class UserManager {
 
 	private static KeyStore ks;
+	private static String pwKs;
 
 	public static void main(String[] args){
 
@@ -223,7 +223,7 @@ public class UserManager {
 
 				while(br.ready()) {
 					String[] dados = br.readLine().split(":");
-					if(!verificaSig("users/" + dados[0] + "/trustedUsers.txt", managerPW) || !encryptionAlgorithms.validMAC(managerPW)) {
+					if(!verificaSig("users/" + dados[0] + "/trustedUsers.txt") || !encryptionAlgorithms.validMAC(managerPW)) {
 						System.out.println("Um dos ficheiros foi alterado por alguem sem permissões");
 						br.close();
 						return -2;
@@ -261,11 +261,11 @@ public class UserManager {
 						f.delete();
 
 						if(tempFile.renameTo(new File("users/" + dados[0] + "/trustedUsers.txt"))) {
-							atualizaSig(generateSig(dados[0], managerPW), dados[0]);
+							atualizaSig(generateSig(dados[0]), dados[0]);
 							br.close();
 							return 1;
 						}else {
-							atualizaSig(generateSig(dados[0], managerPW), dados[0]);
+							atualizaSig(generateSig(dados[0]), dados[0]);
 							br.close();
 							return 0; //nao percebi qual e este caso
 						}
@@ -387,24 +387,35 @@ public class UserManager {
 		kg.init(128);
 		return kg.generateKey();
 	}
-
+	
 	/**
 	 * 
 	 * @return
 	 */
-	private static PrivateKey getPiK(String pw){
-		return (PrivateKey) ks.getKey(alias, pw.toCharArray());			
+	private static PrivateKey getPiK(){
+		PrivateKey pk = null;
+		try {
+			pk = (PrivateKey) ks.getKey("myServer", pwKs.toCharArray());
+		} catch (UnrecoverableKeyException | KeyStoreException | NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}	
+		return pk;
 	}
-
+	
 	/**
 	 * 
 	 * @return
 	 */
 	private static PublicKey getPuK() {
-		Certificate cert = ks.getCertificate(alias);
+		Certificate cert = null;
+		try {
+			cert = (Certificate) ks.getCertificate("myServer");
+		} catch (KeyStoreException e) {
+			e.printStackTrace();
+		}
 		return cert.getPublicKey();
 	}
-
+	
 	/**
 	 * 
 	 * @param key
@@ -423,14 +434,14 @@ public class UserManager {
 		PublicKey pk = getPuK();
 		c1.init(Cipher.WRAP_MODE, pk);
 		byte[] wrappedKey = c1.wrap(key);
-
+		
 		File kFile = new File(path);
 		kFile.createNewFile();
 		FileOutputStream keyOutputFile = new FileOutputStream(kFile);
 		keyOutputFile.write(wrappedKey);
 		keyOutputFile.close();
 	}
-
+	
 	/**
 	 * 
 	 * @param path
@@ -442,32 +453,32 @@ public class UserManager {
 	 * @throws IllegalBlockSizeException 
 	 */
 	private static SecretKey getFileKey(String path) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IOException, IllegalBlockSizeException {
-
+		
 		File keyFile = new File(path + ".key");
 		if(keyFile.exists()) {
 			FileInputStream keyFileInput = new FileInputStream(path + ".key");
-
+			
 			byte[] wrappedKey = new byte[keyFileInput.available()];
 			Cipher c1 = Cipher.getInstance("RSA");
-
+			
 			keyFileInput.read(wrappedKey);
 			PublicKey pk = getPuK();
 			c1.init(Cipher.UNWRAP_MODE, pk);
 			keyFileInput.close();
-
+			
 			return (SecretKey)c1.unwrap(wrappedKey, "RSA", Cipher.SECRET_KEY);
 		}else {
 			keyFile.createNewFile();
 			SecretKey key = generateKey();
 			Cipher c = Cipher.getInstance("AES");
 			c.init(Cipher.ENCRYPT_MODE, key);
-
+			
 			saveFileKey(key, path);
-
+			
 			return key;
 		}	
 	}
-
+	
 	/**
 	 * 
 	 * @param path
@@ -479,24 +490,24 @@ public class UserManager {
 	 * @throws IOException
 	 * @throws IllegalBlockSizeException
 	 */
-	private static boolean verificaSig(String path, String managerPW) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, SignatureException, IOException, IllegalBlockSizeException {
-
+	private static boolean verificaSig(String path) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, SignatureException, IOException, IllegalBlockSizeException {
+		
 		File f = new File(path);
 		Cipher cInput = Cipher.getInstance("AES");
 		SecretKey key = getFileKey(f.getPath());
 		FileInputStream fis = new FileInputStream(f);
-
+		
 		cInput.init(Cipher.DECRYPT_MODE, key);
-
+		
 		CipherInputStream cis = new CipherInputStream(fis, cInput);
 		StringBuilder sb = new StringBuilder();
 		char letra;
-		PrivateKey pk = getPiK(managerPW);
+		PrivateKey pk = getPiK();
 		Signature s = Signature.getInstance("MD5withRSA");
 		byte[] sig;
-
+		
 		s.initSign(pk);
-
+		
 		//faz update ah signature
 		while(cis.available() != 0) {
 			if((letra = (char)cis.read()) != '\n') {
@@ -506,13 +517,13 @@ public class UserManager {
 				sb.setLength(0);
 			}
 		}
-
+		
 		//Recebe o array de bytes que eh a signature gerada
 		sig = s.sign();
 		String pathSig = path.substring(0, path.length() - 3);
 		f = new File(pathSig);
 		fis = new FileInputStream(f);
-
+		
 		//Verifica se as assinaturas sao iguais, se nao entao o ficheiro foi alterado
 		if(sig.length == f.length()) {
 			for(int i = 0; i < sig.length; i++) {
@@ -531,7 +542,7 @@ public class UserManager {
 		fis.close();
 		return true;
 	}
-
+	
 	/**
 	 * 
 	 * @param sig
@@ -551,7 +562,7 @@ public class UserManager {
 		oos.close();
 		newFile.close();			
 	}
-
+	
 	/**
 	 * 
 	 * @param user
@@ -563,14 +574,14 @@ public class UserManager {
 	 * @throws SignatureException 
 	 * @throws IllegalBlockSizeException 
 	 */
-	private static byte[] generateSig(String user, String managerPW) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, SignatureException, IOException, IllegalBlockSizeException {
+	private static byte[] generateSig(String user) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, SignatureException, IOException, IllegalBlockSizeException {
 		File f = new File("users/" + user + "/trustedUsers.txt");
 		FileInputStream fis = new FileInputStream(f);
 		Cipher c = Cipher.getInstance("AES");
 		SecretKey key = getFileKey(f.getPath());
 		c.init(Cipher.DECRYPT_MODE, key);
 		CipherInputStream cos = new CipherInputStream(fis, c);
-		PrivateKey pk = getPiK(managerPW);
+		PrivateKey pk = getPiK();
 		Signature s = Signature.getInstance("MD5withRSA");
 		s.initSign(pk);
 		char letra;

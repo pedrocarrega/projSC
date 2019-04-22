@@ -322,14 +322,14 @@ public class UserManager {
 		while(br.ready()) {
 			String[] splited = br.readLine().split(":");
 			if(splited[0].equals(user)) {
-				String tempPass = encryptionAlgorithms.hashingDados(pass);
-				if(tempPass.substring(tempPass.indexOf(":")).equals(splited[2])) {
+				String nPW = splited[1] + pass;
+				MessageDigest md = MessageDigest.getInstance("SHA");
+				byte[] hashed = md.digest(nPW.getBytes());
+				String pwHashed = new String(hashed);
+				if(pwHashed.equals(splited[2])){
 					br.close();
-					return 1;
+					return -1;
 				}
-
-				br.close();
-				return -1;
 			}
 		}
 
@@ -364,7 +364,7 @@ public class UserManager {
 
 					return true;
 				}else {
-					bw.write(data);					
+					bw.write(data);			
 				}
 			}
 		}
@@ -387,7 +387,7 @@ public class UserManager {
 		kg.init(128);
 		return kg.generateKey();
 	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -401,7 +401,7 @@ public class UserManager {
 		}	
 		return pk;
 	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -415,7 +415,7 @@ public class UserManager {
 		}
 		return cert.getPublicKey();
 	}
-	
+
 	/**
 	 * 
 	 * @param key
@@ -434,14 +434,14 @@ public class UserManager {
 		PublicKey pk = getPuK();
 		c1.init(Cipher.WRAP_MODE, pk);
 		byte[] wrappedKey = c1.wrap(key);
-		
+
 		File kFile = new File(path);
 		kFile.createNewFile();
 		FileOutputStream keyOutputFile = new FileOutputStream(kFile);
 		keyOutputFile.write(wrappedKey);
 		keyOutputFile.close();
 	}
-	
+
 	/**
 	 * 
 	 * @param path
@@ -453,32 +453,32 @@ public class UserManager {
 	 * @throws IllegalBlockSizeException 
 	 */
 	private static SecretKey getFileKey(String path) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IOException, IllegalBlockSizeException {
-		
+
 		File keyFile = new File(path + ".key");
 		if(keyFile.exists()) {
 			FileInputStream keyFileInput = new FileInputStream(path + ".key");
-			
+
 			byte[] wrappedKey = new byte[keyFileInput.available()];
 			Cipher c1 = Cipher.getInstance("RSA");
-			
+
 			keyFileInput.read(wrappedKey);
 			PublicKey pk = getPuK();
 			c1.init(Cipher.UNWRAP_MODE, pk);
 			keyFileInput.close();
-			
+
 			return (SecretKey)c1.unwrap(wrappedKey, "RSA", Cipher.SECRET_KEY);
 		}else {
 			keyFile.createNewFile();
 			SecretKey key = generateKey();
 			Cipher c = Cipher.getInstance("AES");
 			c.init(Cipher.ENCRYPT_MODE, key);
-			
+
 			saveFileKey(key, path);
-			
+
 			return key;
 		}	
 	}
-	
+
 	/**
 	 * 
 	 * @param path
@@ -491,23 +491,23 @@ public class UserManager {
 	 * @throws IllegalBlockSizeException
 	 */
 	private static boolean verificaSig(String path) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, SignatureException, IOException, IllegalBlockSizeException {
-		
+
 		File f = new File(path);
 		Cipher cInput = Cipher.getInstance("AES");
 		SecretKey key = getFileKey(f.getPath());
 		FileInputStream fis = new FileInputStream(f);
-		
+
 		cInput.init(Cipher.DECRYPT_MODE, key);
-		
+
 		CipherInputStream cis = new CipherInputStream(fis, cInput);
 		StringBuilder sb = new StringBuilder();
 		char letra;
 		PrivateKey pk = getPiK();
 		Signature s = Signature.getInstance("MD5withRSA");
 		byte[] sig;
-		
+
 		s.initSign(pk);
-		
+
 		//faz update ah signature
 		while(cis.available() != 0) {
 			if((letra = (char)cis.read()) != '\n') {
@@ -517,13 +517,13 @@ public class UserManager {
 				sb.setLength(0);
 			}
 		}
-		
+
 		//Recebe o array de bytes que eh a signature gerada
 		sig = s.sign();
 		String pathSig = path.substring(0, path.length() - 3);
 		f = new File(pathSig);
 		fis = new FileInputStream(f);
-		
+
 		//Verifica se as assinaturas sao iguais, se nao entao o ficheiro foi alterado
 		if(sig.length == f.length()) {
 			for(int i = 0; i < sig.length; i++) {
@@ -542,7 +542,7 @@ public class UserManager {
 		fis.close();
 		return true;
 	}
-	
+
 	/**
 	 * 
 	 * @param sig
@@ -562,7 +562,7 @@ public class UserManager {
 		oos.close();
 		newFile.close();			
 	}
-	
+
 	/**
 	 * 
 	 * @param user

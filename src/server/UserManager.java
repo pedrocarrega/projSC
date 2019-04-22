@@ -1,4 +1,5 @@
 package server;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -23,6 +24,7 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.CertificateException;
 import java.util.Scanner;
 
 import javax.crypto.Cipher;
@@ -47,6 +49,10 @@ public class UserManager {
 			String managerPW = sc.nextLine();
 
 			if(encryptionAlgorithms.validMAC(managerPW)) {
+				
+				pwKs = args[0];
+				ks = KeyStore.getInstance("JKS");
+				ks.load(new FileInputStream("keyStore.jks"), pwKs.toCharArray());
 
 				while(true) {
 
@@ -121,6 +127,12 @@ public class UserManager {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IllegalBlockSizeException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (KeyStoreException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (CertificateException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

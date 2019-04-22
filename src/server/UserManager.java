@@ -199,56 +199,61 @@ public class UserManager {
 				.forEach(File::delete);
 
 				BufferedReader br = new BufferedReader(new FileReader(new File("users.txt")));
-
-				while(br.ready()) {
-					String[] dados = br.readLine().split(":");
-					if(!verificaSig("users/" + dados[0] + "/trustedUsers.txt") || !encryptionAlgorithms.validMAC(managerPW)) {
-						System.out.println("Um dos ficheiros foi alterado por alguem sem permissões");
-						br.close();
-						return -2;
-					}else {
-
-						File f = new File("users/" + dados[0] + "/trustedUsers.txt");
-						File tempFile = new File("users/" + dados[0] + "/trustedUsers1.txt");
-						Cipher cInput = Cipher.getInstance("AES");
-						Cipher cOutput = Cipher.getInstance("AES");
-						Key key = getFileKey(f.getPath());
-
-						tempFile.createNewFile();
-						cInput.init(Cipher.DECRYPT_MODE, key);
-						cOutput.init(Cipher.ENCRYPT_MODE, key);
-
-						FileInputStream fis = new FileInputStream(f);
-						FileOutputStream fos = new FileOutputStream(tempFile);
-						CipherInputStream cis = new CipherInputStream(fis, cInput);
-						CipherOutputStream cos = new CipherOutputStream(fos, cOutput);
-						StringBuilder sb = new StringBuilder();
-						char letra;
-
-						while(cis.available() != 0) {
-							if((letra = (char)cis.read()) != '\n') {
-								sb.append(letra);
-							}else {
-								if(!sb.toString().equals(dados[0])) {//Se nao foi encontrado o user a remover
-									cos.write(sb.toString().getBytes());//Se é o user a remover ent n entra no if e nao eh escrito no novo ficheiro cifrado
+				if(encryptionAlgorithms.validMAC(managerPW)) {
+					while(br.ready()) {
+						String[] dados = br.readLine().split(":");
+						if(!verificaSig("users/" + dados[0] + "/trustedUsers.txt")) {
+							System.out.println("Um dos ficheiros foi alterado por alguem sem permissões");
+							br.close();
+							return -2;
+						}else {
+	
+							File f = new File("users/" + dados[0] + "/trustedUsers.txt");
+							File tempFile = new File("users/" + dados[0] + "/trustedUsers1.txt");
+							Cipher cInput = Cipher.getInstance("AES");
+							Cipher cOutput = Cipher.getInstance("AES");
+							Key key = getFileKey(f.getPath());
+	
+							tempFile.createNewFile();
+							cInput.init(Cipher.DECRYPT_MODE, key);
+							cOutput.init(Cipher.ENCRYPT_MODE, key);
+	
+							FileInputStream fis = new FileInputStream(f);
+							FileOutputStream fos = new FileOutputStream(tempFile);
+							CipherInputStream cis = new CipherInputStream(fis, cInput);
+							CipherOutputStream cos = new CipherOutputStream(fos, cOutput);
+							StringBuilder sb = new StringBuilder();
+							char letra;
+	
+							while(cis.available() != 0) {
+								if((letra = (char)cis.read()) != '\n') {
+									sb.append(letra);
+								}else {
+									if(!sb.toString().equals(dados[0])) {//Se nao foi encontrado o user a remover
+										cos.write(sb.toString().getBytes());//Se é o user a remover ent n entra no if e nao eh escrito no novo ficheiro cifrado
+									}
+									sb.setLength(0);
 								}
-								sb.setLength(0);
+							}
+							cis.close();
+							cos.close();
+							f.delete();
+	
+							if(tempFile.renameTo(new File("users/" + dados[0] + "/trustedUsers.txt"))) {
+								atualizaSig(generateSig(dados[0]), dados[0]);
+								br.close();
+								return 1;
+							}else {
+								tempFile.delete();
+								br.close();
+								return 0; //quando o ficheiro n deu para ser renamed ent apaga o mesmo e cancela a operacao
 							}
 						}
-						cis.close();
-						cos.close();
-						f.delete();
-
-						if(tempFile.renameTo(new File("users/" + dados[0] + "/trustedUsers.txt"))) {
-							atualizaSig(generateSig(dados[0]), dados[0]);
-							br.close();
-							return 1;
-						}else {
-							atualizaSig(generateSig(dados[0]), dados[0]);
-							br.close();
-							return 0; //nao percebi qual e este caso
-						}
 					}
+				}else {
+					System.out.println("Um dos ficheiros foi alterado por alguem sem permissões");
+					br.close();
+					return -2;
 				}
 				br.close();
 				return 1;

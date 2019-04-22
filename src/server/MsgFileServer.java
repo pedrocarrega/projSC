@@ -541,11 +541,12 @@ public class MsgFileServer {
 					f.delete();
 
 					if(tempFile.renameTo(new File("users/" + user + "/trustedUsers.txt"))) {
+						atualizaSig(generateSig(user), user);
 						outStream.writeObject(1);
 					}else {
+						tempFile.delete();
 						outStream.writeObject(0);
 					}
-					atualizaSig(generateSig(user), user);
 				}
 			}
 		}

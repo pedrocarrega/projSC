@@ -173,26 +173,6 @@ public class UserManager {
 				BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt")));
 				bw.write(username + ":" + encryptionAlgorithms.hashingDados(newPW) + "\n");
 
-				//			File temp = new File("users.txt");
-				//			temp.renameTo(new File("tempUsers.txt"));
-				//			BufferedReader br = new BufferedReader(new FileReader(temp));
-				//			BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt")));
-				//
-				//			while(br.ready()) {
-				//				String data = br.readLine();
-				//				String[] userData = data.split(":");
-				//				if(!userData[0].equals(username)) {
-				//					bw.write(data);
-				//				}else {
-				//					bw.write(username + ":" + encryptionAlgorithms.hashingDados(newPW) + "\n");
-				//				}
-				//			}
-				//
-				//			temp.delete();
-				//
-				//			br.close();
-				//			bw.close();
-
 				encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
 				bw.close();
 
@@ -213,7 +193,6 @@ public class UserManager {
 			return result;
 		}else {
 			if(removeUserFromFile(user + ":" + pass, managerPW)) {
-				encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
 				Files.walk(Paths.get("users/" + user))
 				.map(Path::toFile)
 				.sorted((o1, o2) -> -o1.compareTo(o2))
@@ -328,6 +307,9 @@ public class UserManager {
 				String pwHashed = new String(hashed);
 				if(pwHashed.equals(splited[2])){
 					br.close();
+					return 1;
+				}else {
+					br.close();
 					return -1;
 				}
 			}
@@ -351,21 +333,6 @@ public class UserManager {
 			String[] s = data.split(":");
 			if(!s[0].equals(info[0])) {
 				bw.write(data);
-			}else {
-				String nPW = s[1] + info[1];
-				MessageDigest md = MessageDigest.getInstance("SHA");
-				byte[] hashed = md.digest(nPW.getBytes());
-				String pwHashed = new String(hashed);
-				if(pwHashed.equals(s[2])) {
-					temp.delete();
-
-					br.close();
-					bw.close();
-
-					return true;
-				}else {
-					bw.write(data);			
-				}
 			}
 		}
 
@@ -373,8 +340,10 @@ public class UserManager {
 
 		br.close();
 		bw.close();
+		
+		encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
 
-		return false;
+		return true;
 	}
 
 	/**

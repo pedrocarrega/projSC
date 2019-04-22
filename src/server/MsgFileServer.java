@@ -79,7 +79,6 @@ public class MsgFileServer {
 		this.pw = pw;
 		try {
 //			sSoc = new ServerSocket(Integer.parseInt(args));
-			SSoc = new
 			ServerSocketFactory ssf = SSLServerSocketFactory.getDefault( );
 			SSLServerSocket ss = (SSLServerSocket) ssf.createServerSocket(Integer.parseInt(args));
 		} catch (IOException e) {
@@ -102,9 +101,9 @@ public class MsgFileServer {
 	
 	class ServerThread extends Thread {
 
-		private Socket socket = null;
+		private SSLServerSocket socket = null;
 
-		ServerThread(Socket inSoc) {
+		ServerThread(SSLServerSocket inSoc) {
 			socket = inSoc;
 			System.out.println("thread do server para cada cliente");
 		}

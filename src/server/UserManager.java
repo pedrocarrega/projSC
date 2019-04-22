@@ -17,6 +17,7 @@ import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -168,35 +169,38 @@ public class UserManager {
 		if(result != 1) {
 			return result;
 		}else {
-			removeLineFromFile("users.txt", username + ":" + encryptionAlgorithms.hashingDados(oldPW) + "\n", managerPW, "mac");
-			BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt")));
-			bw.write(username + ":" + encryptionAlgorithms.hashingDados(newPW) + "\n");
+			if(removeUserFromFile(username + ":" + oldPW, managerPW)) {
+				BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt")));
+				bw.write(username + ":" + encryptionAlgorithms.hashingDados(newPW) + "\n");
 
-			//			File temp = new File("users.txt");
-			//			temp.renameTo(new File("tempUsers.txt"));
-			//			BufferedReader br = new BufferedReader(new FileReader(temp));
-			//			BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt")));
-			//
-			//			while(br.ready()) {
-			//				String data = br.readLine();
-			//				String[] userData = data.split(":");
-			//				if(!userData[0].equals(username)) {
-			//					bw.write(data);
-			//				}else {
-			//					bw.write(username + ":" + encryptionAlgorithms.hashingDados(newPW) + "\n");
-			//				}
-			//			}
-			//
-			//			temp.delete();
-			//
-			//			br.close();
-			//			bw.close();
+				//			File temp = new File("users.txt");
+				//			temp.renameTo(new File("tempUsers.txt"));
+				//			BufferedReader br = new BufferedReader(new FileReader(temp));
+				//			BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt")));
+				//
+				//			while(br.ready()) {
+				//				String data = br.readLine();
+				//				String[] userData = data.split(":");
+				//				if(!userData[0].equals(username)) {
+				//					bw.write(data);
+				//				}else {
+				//					bw.write(username + ":" + encryptionAlgorithms.hashingDados(newPW) + "\n");
+				//				}
+				//			}
+				//
+				//			temp.delete();
+				//
+				//			br.close();
+				//			bw.close();
 
-			encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
-			bw.close();
+				encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
+				bw.close();
 
-			return 1;
+				return 1;
 
+			}else {
+				return 0;
+			}
 		}
 
 	}
@@ -208,62 +212,70 @@ public class UserManager {
 		if(result != 1) {
 			return result;
 		}else {
-			removeLineFromFile("users.txt", user + ":" + encryptionAlgorithms.hashingDados(pass) + "\n", managerPW, "mac");
-			BufferedReader br = new BufferedReader(new FileReader(new File("users.txt")));
-			Files.walk(Paths.get("users/" + user))
-			.map(Path::toFile)
-			.sorted((o1, o2) -> -o1.compareTo(o2))
-			.forEach(File::delete);
+			if(removeUserFromFile(user + ":" + pass, managerPW)) {
+				encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
+				Files.walk(Paths.get("users/" + user))
+				.map(Path::toFile)
+				.sorted((o1, o2) -> -o1.compareTo(o2))
+				.forEach(File::delete);
 
-			while(br.ready()) {
-				String[] dados = br.readLine().split(":");
-				if(!verificaSig("users/" + dados[0] + "/trustedUsers.txt", managerPW) || !encryptionAlgorithms.validMAC(managerPW)) {
-					System.out.println("Um dos ficheiros foi alterado por alguem sem permissões");
-					br.close();
-					return -2;
-				}else {
+				BufferedReader br = new BufferedReader(new FileReader(new File("users.txt")));
 
-					File f = new File("users/" + dados[0] + "/trustedUsers.txt");
-					File tempFile = new File("users/" + dados[0] + "/trustedUsers1.txt");
-					Cipher cInput = Cipher.getInstance("AES");
-					Cipher cOutput = Cipher.getInstance("AES");
-					Key key = getFileKey(f.getPath());
+				while(br.ready()) {
+					String[] dados = br.readLine().split(":");
+					if(!verificaSig("users/" + dados[0] + "/trustedUsers.txt", managerPW) || !encryptionAlgorithms.validMAC(managerPW)) {
+						System.out.println("Um dos ficheiros foi alterado por alguem sem permissões");
+						br.close();
+						return -2;
+					}else {
 
-					tempFile.createNewFile();
-					cInput.init(Cipher.DECRYPT_MODE, key);
-					cOutput.init(Cipher.ENCRYPT_MODE, key);
+						File f = new File("users/" + dados[0] + "/trustedUsers.txt");
+						File tempFile = new File("users/" + dados[0] + "/trustedUsers1.txt");
+						Cipher cInput = Cipher.getInstance("AES");
+						Cipher cOutput = Cipher.getInstance("AES");
+						Key key = getFileKey(f.getPath());
 
-					FileInputStream fis = new FileInputStream(f);
-					FileOutputStream fos = new FileOutputStream(tempFile);
-					CipherInputStream cis = new CipherInputStream(fis, cInput);
-					CipherOutputStream cos = new CipherOutputStream(fos, cOutput);
-					StringBuilder sb = new StringBuilder();
-					char letra;
+						tempFile.createNewFile();
+						cInput.init(Cipher.DECRYPT_MODE, key);
+						cOutput.init(Cipher.ENCRYPT_MODE, key);
 
-					while(cis.available() != 0) {
-						if((letra = (char)cis.read()) != '\n') {
-							sb.append(letra);
-						}else {
-							if(!sb.toString().equals(dados[0])) {//Se nao foi encontrado o user a remover
-								cos.write(sb.toString().getBytes());//Se é o user a remover ent n entra no if e nao eh escrito no novo ficheiro cifrado
+						FileInputStream fis = new FileInputStream(f);
+						FileOutputStream fos = new FileOutputStream(tempFile);
+						CipherInputStream cis = new CipherInputStream(fis, cInput);
+						CipherOutputStream cos = new CipherOutputStream(fos, cOutput);
+						StringBuilder sb = new StringBuilder();
+						char letra;
+
+						while(cis.available() != 0) {
+							if((letra = (char)cis.read()) != '\n') {
+								sb.append(letra);
+							}else {
+								if(!sb.toString().equals(dados[0])) {//Se nao foi encontrado o user a remover
+									cos.write(sb.toString().getBytes());//Se é o user a remover ent n entra no if e nao eh escrito no novo ficheiro cifrado
+								}
+								sb.setLength(0);
 							}
-							sb.setLength(0);
+						}
+						cis.close();
+						cos.close();
+						f.delete();
+
+						if(tempFile.renameTo(new File("users/" + dados[0] + "/trustedUsers.txt"))) {
+							atualizaSig(generateSig(dados[0], managerPW), dados[0]);
+							br.close();
+							return 1;
+						}else {
+							atualizaSig(generateSig(dados[0], managerPW), dados[0]);
+							br.close();
+							return 0; //nao percebi qual e este caso
 						}
 					}
-					cis.close();
-					cos.close();
-					f.delete();
-
-					if(tempFile.renameTo(new File("users/" + dados[0] + "/trustedUsers.txt"))) {
-						atualizaSig(generateSig(dados[0], managerPW), dados[0]);
-						br.close();
-						return 1;
-					}else {
-						atualizaSig(generateSig(dados[0], managerPW), dados[0]);
-						br.close();
-						return 0; //nao percebi qual e este caso
-					}
 				}
+				br.close();
+				return 1;
+
+			}else {
+				return 0;
 			}
 
 			//			while(br.ready()) {
@@ -299,13 +311,6 @@ public class UserManager {
 			//
 			//			temp.delete();
 			//
-
-
-			encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
-			br.close();
-
-			return 1;
-
 		}
 	}
 
@@ -333,17 +338,34 @@ public class UserManager {
 
 	}
 
-	public static boolean removeLineFromFile(String fileName, String remove, String managerPW, String type) throws IOException {
+	public static boolean removeUserFromFile(String remove, String managerPW) throws IOException, NoSuchAlgorithmException {
 
-		File temp = new File(fileName);
-		temp.renameTo(new File("temp" + fileName));
+		File temp = new File("users.txt");
+		temp.renameTo(new File("tempUsers.txt"));
 		BufferedReader br = new BufferedReader(new FileReader(temp));
-		BufferedWriter bw = new BufferedWriter(new FileWriter(new File(fileName)));
+		BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt")));
+		String[] info = remove.split(":");
 
 		while(br.ready()) {
 			String data = br.readLine();
-			if(!data.equals(remove)) {
+			String[] s = data.split(":");
+			if(!s[0].equals(info[0])) {
 				bw.write(data);
+			}else {
+				String nPW = s[1] + info[1];
+				MessageDigest md = MessageDigest.getInstance("SHA");
+				byte[] hashed = md.digest(nPW.getBytes());
+				String pwHashed = new String(hashed);
+				if(pwHashed.equals(s[2])) {
+					temp.delete();
+
+					br.close();
+					bw.close();
+
+					return true;
+				}else {
+					bw.write(data);					
+				}
 			}
 		}
 
@@ -352,21 +374,7 @@ public class UserManager {
 		br.close();
 		bw.close();
 
-		switch (type) {
-
-		case "mac":
-
-			encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
-			return true;
-
-		case "assinatura":
-
-
-			return true;
-
-		default: //nao faz nenhum tipo de encriptacao (qnd queres isto type deve ser null)
-			return true;
-		}
+		return false;
 	}
 
 	/**

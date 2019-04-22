@@ -46,10 +46,12 @@ public class UserManager {
 		try(Scanner sc = new Scanner(System.in)){
 
 
+			System.out.println("User Manager Password: ");
 			String managerPW = sc.nextLine();
 
 			if(encryptionAlgorithms.validMAC(managerPW)) {
 				
+				System.out.println("KeyStore Password: ");
 				pwKs = sc.nextLine();
 				ks = KeyStore.getInstance("JKS");
 				ks.load(new FileInputStream("keyStore.jks"), pwKs.toCharArray());

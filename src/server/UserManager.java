@@ -188,7 +188,7 @@ public class UserManager {
 			return result;
 		}else {
 			if(removeUserFromFile(username + ":" + oldPW, managerPW)) {
-				BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt")));
+				BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt"), true));
 				bw.write(username + ":" + encryptionAlgorithms.hashingDados(newPW) + "\n");
 
 				encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
@@ -279,40 +279,6 @@ public class UserManager {
 			}else {
 				return 0;
 			}
-
-			//			while(br.ready()) {
-			//				String[] data = br.readLine().split(":");
-			//				removeLineFromFile("users/" + data[0] + "/trustedUsers.txt", user, managerPW, "assinatura");
-			//			}
-
-
-			//			File temp = new File("users.txt");
-			//			temp.renameTo(new File("tempUsers.txt"));
-			//			BufferedReader br = new BufferedReader(new FileReader(temp));
-			//			BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt")));
-			//
-			//			while(br.ready()) {
-			//				String data = br.readLine();
-			//				String[] userData = data.split(":");
-			//				
-			//				File tempTrusted = new File("users/" + userData[0] + "/trustedUsers.txt");
-			//				tempTrusted.renameTo(new File("users/" + userData[0] + "/tempTrustedUsers.txt"));
-			//				BufferedReader btr = new BufferedReader(new FileReader(temp));
-			//				BufferedWriter btw = new BufferedWriter(new FileWriter(new File("users/" + userData[0] + "/trustedUsers.txt")));
-			//				
-			//				
-			//				
-			//				
-			//				if(!userData[0].equals(user)) {
-			//					bw.write(data);
-			//				}
-			//				
-			//				btr.close();
-			//				btw.close();
-			//			}
-			//
-			//			temp.delete();
-			//
 		}
 	}
 
@@ -348,7 +314,7 @@ public class UserManager {
 		File temp = new File("users.txt");
 		temp.renameTo(new File("tempUsers.txt"));
 		BufferedReader br = new BufferedReader(new FileReader(new File("tempUsers.txt")));
-		BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt")));
+		BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt"), true));
 		String[] info = remove.split(":");
 
 		while(br.ready()) {

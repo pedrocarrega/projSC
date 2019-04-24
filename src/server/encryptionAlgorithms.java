@@ -19,7 +19,6 @@ import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
-import javax.crypto.spec.SecretKeySpec;
 
 public class encryptionAlgorithms {
 	
@@ -29,12 +28,26 @@ public class encryptionAlgorithms {
 	 * @throws NoSuchAlgorithmException 
 	 */
 	public static String hashingDados(String userData) throws NoSuchAlgorithmException {
+		boolean avaliador2 = false;
 		Random rnd = new Random();
 		int salt = rnd.nextInt();
 		String nPW = salt + userData;
-		MessageDigest md = MessageDigest.getInstance("SHA");
-		byte[] hashed = md.digest(nPW.getBytes());
-		String pwHashed = new String(hashed);
+		String pwHashed = "";
+		byte[] hashed;
+		while(true) {
+			MessageDigest md = MessageDigest.getInstance("SHA");
+			hashed = md.digest(nPW.getBytes());
+			for(int i = 0; i < hashed.length; i++) {
+				if(hashed[i] == 'n') {
+					avaliador2 = true;
+				}
+			}
+			if(!avaliador2) {
+				break;
+			}
+		}
+		pwHashed = new String(hashed);
+		System.out.println(pwHashed);
 		return salt + ":" + pwHashed;
 	}
 
@@ -51,6 +64,7 @@ public class encryptionAlgorithms {
 			kf = SecretKeyFactory.getInstance("PBEWithHmacSHA256AndAES_128");
 			key = kf.generateSecret(keySpec);
 			mac.init(key);
+
 			String linha;
 			while((linha = br.readLine()) != null) {
 				mac.update(linha.getBytes());
@@ -63,7 +77,7 @@ public class encryptionAlgorithms {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (InvalidKeyException e) {
-			System.out.println("alsdasdasfsdfsdfsd");
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -82,14 +96,14 @@ public class encryptionAlgorithms {
 			if(f.exists()) {
 				f.delete();
 			}
-			f.createNewFile();
+
 			FileOutputStream fos = new FileOutputStream("mac.txt");
-			ObjectOutputStream	oos	= new ObjectOutputStream(fos);
-			System.out.println("SIZE: " + mac.length);
-			oos.write(mac);
-			oos.close();
-			System.out.println(f.length());
+//			ObjectOutputStream	oos	= new ObjectOutputStream(fos);
+			System.out.println("mac : " +mac.length);
+			fos.write(mac);
+			//oos.close();
 			fos.close();
+			System.out.println(f.length());
 
 		} catch (IllegalStateException e) {
 			// TODO Auto-generated catch block
@@ -105,23 +119,24 @@ public class encryptionAlgorithms {
 		File f = new File("mac.txt");
 
 		if(f.exists()) {
+			
+			BufferedInputStream in = new BufferedInputStream(new FileInputStream("mac.txt"));
+			byte[] senderMacCode = new byte[in.available()];
+			in.read(senderMacCode);
 
-			BufferedInputStream bis = new BufferedInputStream(new FileInputStream(f));
 			byte[] mac = geraMAC(pass);
-			byte[] macAntigo = new byte[bis.available()];
-			bis.read(macAntigo);
 
-			if(mac.length != macAntigo.length) {
-				bis.close();
+			if(mac.length != senderMacCode.length) {
+				in.close();
 				return false;
 			}
 			for(int i = 0; i<mac.length; i++) {
-				if(mac[i] != macAntigo[i]) {
-					bis.close();
+				if(mac[i] != senderMacCode[i]) {
+					in.close();
 					return false;
 				}
 			}
-			bis.close();
+			in.close();
 			return true;	
 		}else {
 			atualizaMAC(geraMAC(pass));

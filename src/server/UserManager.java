@@ -150,7 +150,6 @@ public class UserManager {
 	private static boolean addUser(String username, String password, String managerPW) throws NoSuchAlgorithmException, IOException {
 
 
-		BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt")));
 		BufferedReader br = new BufferedReader(new FileReader(new File("users.txt")));
 
 
@@ -159,11 +158,11 @@ public class UserManager {
 		while((linha = br.readLine()) != null) {
 			String[] lineSplitted = linha.split(":");
 			if(lineSplitted[0].equals(username)) {
-				bw.close();
 				br.close();
 				return false;
 			}
 		}
+		BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt"),true));
 		bw.write(username + ":" + encryptionAlgorithms.hashingDados(password) + "\n");
 
 		File folder = new File("users/" + username + "/files");

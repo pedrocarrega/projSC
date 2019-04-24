@@ -191,10 +191,10 @@ public class UserManager {
 			if(removeUserFromFile(username + ":" + oldPW, managerPW)) {
 				BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt"), true));
 				bw.write(username + ":" + encryptionAlgorithms.hashingDados(newPW) + "\n");
+				bw.close();
 
 				byte[] mac = encryptionAlgorithms.geraMAC(managerPW);
 				encryptionAlgorithms.atualizaMAC(mac);
-				bw.close();
 
 				return 1;
 

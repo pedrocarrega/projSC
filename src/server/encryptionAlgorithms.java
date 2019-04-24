@@ -1,9 +1,7 @@
 package server;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -110,24 +108,30 @@ public class encryptionAlgorithms {
 
 		if(f.exists()) {
 			
-			BufferedInputStream in = new BufferedInputStream(new FileInputStream("mac.txt"));
-			byte[] senderMacCode = new byte[in.available()];
-			in.read(senderMacCode);
+			//BufferedInputStream in = new BufferedInputStream(new FileInputStream("mac.txt"));
+			BufferedReader br = new BufferedReader(new FileReader("mac.txt"));
+			
 
 			byte[] mac = geraMAC(pass);
+			String macNovo = DatatypeConverter.printBase64Binary(mac);
+			String macAntigo = br.readLine();
+			
 
-			if(mac.length != senderMacCode.length) {
-				in.close();
+			if(macNovo.equals(macAntigo)) {
+				br.close();
+				return true;
+			}else {
+				br.close();
 				return false;
 			}
-			for(int i = 0; i<mac.length; i++) {
-				if(mac[i] != senderMacCode[i]) {
-					in.close();
-					return false;
-				}
-			}
-			in.close();
-			return true;	
+//			for(int i = 0; i<mac.length; i++) {
+//				if(mac[i] != senderMacCode[i]) {
+//					in.close();
+//					return false;
+//				}
+//			}
+//			in.close();
+//			return true;	
 		}else {
 			atualizaMAC(geraMAC(pass));
 			return true;

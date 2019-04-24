@@ -42,19 +42,25 @@ public class UserManager {
 	private static String pwKs;
 
 	public static void main(String[] args){
-
+		
+		
 		try(Scanner sc = new Scanner(System.in)){
-
 
 			System.out.println("User Manager Password: ");
 			String managerPW = sc.nextLine();
+			
+			File users = new File("users.txt");
+			
+			if(!users.exists()) {
+				users.createNewFile();
+			}
 
 			if(encryptionAlgorithms.validMAC(managerPW)) {
 				
 				System.out.println("KeyStore Password: ");
 				pwKs = sc.nextLine();
 				ks = KeyStore.getInstance("JKS");
-				ks.load(new FileInputStream("keyStore.jks"), pwKs.toCharArray());
+				ks.load(new FileInputStream("myServer.keyStore"), pwKs.toCharArray());
 
 				while(true) {
 
@@ -168,10 +174,9 @@ public class UserManager {
 		folder.createNewFile();
 
 
-
-		encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
 		br.close();
 		bw.close();
+		encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
 		return true;
 
 	}
@@ -343,7 +348,7 @@ public class UserManager {
 
 		File temp = new File("users.txt");
 		temp.renameTo(new File("tempUsers.txt"));
-		BufferedReader br = new BufferedReader(new FileReader(temp));
+		BufferedReader br = new BufferedReader(new FileReader(new File("tempUsers.txt")));
 		BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt")));
 		String[] info = remove.split(":");
 

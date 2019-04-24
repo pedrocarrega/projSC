@@ -1,7 +1,9 @@
 package server;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
@@ -17,6 +19,7 @@ import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
 
 public class encryptionAlgorithms {
 	
@@ -48,7 +51,6 @@ public class encryptionAlgorithms {
 			kf = SecretKeyFactory.getInstance("PBEWithHmacSHA256AndAES_128");
 			key = kf.generateSecret(keySpec);
 			mac.init(key);
-
 			String linha;
 			while((linha = br.readLine()) != null) {
 				mac.update(linha.getBytes());
@@ -61,7 +63,7 @@ public class encryptionAlgorithms {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
+			System.out.println("alsdasdasfsdfsdfsd");
 			e.printStackTrace();
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -80,11 +82,13 @@ public class encryptionAlgorithms {
 			if(f.exists()) {
 				f.delete();
 			}
-
+			f.createNewFile();
 			FileOutputStream fos = new FileOutputStream("mac.txt");
 			ObjectOutputStream	oos	= new ObjectOutputStream(fos);
+			System.out.println("SIZE: " + mac.length);
 			oos.write(mac);
 			oos.close();
+			System.out.println(f.length());
 			fos.close();
 
 		} catch (IllegalStateException e) {
@@ -102,20 +106,22 @@ public class encryptionAlgorithms {
 
 		if(f.exists()) {
 
-			BufferedReader br = new BufferedReader(new FileReader(f));
+			BufferedInputStream bis = new BufferedInputStream(new FileInputStream(f));
 			byte[] mac = geraMAC(pass);
+			byte[] macAntigo = new byte[bis.available()];
+			bis.read(macAntigo);
 
-			if(mac.length != f.length()) {
-				br.close();
+			if(mac.length != macAntigo.length) {
+				bis.close();
 				return false;
 			}
 			for(int i = 0; i<mac.length; i++) {
-				if(mac[i] != br.read()) {
-					br.close();
+				if(mac[i] != macAntigo[i]) {
+					bis.close();
 					return false;
 				}
 			}
-			br.close();
+			bis.close();
 			return true;	
 		}else {
 			atualizaMAC(geraMAC(pass));

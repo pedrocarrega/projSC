@@ -18,6 +18,7 @@ import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
+import javax.xml.bind.DatatypeConverter;
 
 public class encryptionAlgorithms {
 	
@@ -45,7 +46,7 @@ public class encryptionAlgorithms {
 				break;
 			}
 		}
-		pwHashed = new String(hashed);
+		pwHashed = DatatypeConverter.printBase64Binary(hashed);
 		System.out.println(pwHashed);
 		return salt + ":" + pwHashed;
 	}

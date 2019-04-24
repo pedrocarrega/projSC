@@ -34,6 +34,7 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import javax.xml.bind.DatatypeConverter;
 
 @SuppressWarnings("deprecation")
 public class UserManager {
@@ -191,7 +192,8 @@ public class UserManager {
 				BufferedWriter bw = new BufferedWriter(new FileWriter(new File("users.txt"), true));
 				bw.write(username + ":" + encryptionAlgorithms.hashingDados(newPW) + "\n");
 
-				encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
+				byte[] mac = encryptionAlgorithms.geraMAC(managerPW);
+				encryptionAlgorithms.atualizaMAC(mac);
 				bw.close();
 
 				return 1;
@@ -293,7 +295,7 @@ public class UserManager {
 				String nPW = splited[1] + pass;
 				MessageDigest md = MessageDigest.getInstance("SHA");
 				byte[] hashed = md.digest(nPW.getBytes());
-				String pwHashed = new String(hashed);
+				String pwHashed = DatatypeConverter.printBase64Binary(hashed);
 				if(pwHashed.equals(splited[2])){
 					br.close();
 					return 1;
@@ -324,11 +326,13 @@ public class UserManager {
 				bw.write(data);
 			}
 		}
-
-		temp.delete();
-
+		
 		br.close();
 		bw.close();
+
+		temp = new File("tempUsers.txt");
+		System.out.println(temp.getName());
+		temp.delete();
 		
 		encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
 

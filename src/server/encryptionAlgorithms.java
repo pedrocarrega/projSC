@@ -7,6 +7,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
@@ -28,25 +29,12 @@ public class encryptionAlgorithms {
 	 * @throws NoSuchAlgorithmException 
 	 */
 	public static String hashingDados(String userData) throws NoSuchAlgorithmException {
-		boolean avaliador2 = false;
+		MessageDigest md = MessageDigest.getInstance("SHA");
 		Random rnd = new Random();
 		int salt = rnd.nextInt();
 		String nPW = salt + userData;
-		String pwHashed = "";
-		byte[] hashed;
-		while(true) {
-			MessageDigest md = MessageDigest.getInstance("SHA");
-			hashed = md.digest(nPW.getBytes());
-			for(int i = 0; i < hashed.length; i++) {
-				if(hashed[i] == 'n') {
-					avaliador2 = true;
-				}
-			}
-			if(!avaliador2) {
-				break;
-			}
-		}
-		pwHashed = DatatypeConverter.printBase64Binary(hashed);
+		byte[] hashed = md.digest(nPW.getBytes());
+		String pwHashed = DatatypeConverter.printBase64Binary(hashed);
 		System.out.println(pwHashed);
 		return salt + ":" + pwHashed;
 	}
@@ -96,11 +84,13 @@ public class encryptionAlgorithms {
 			if(f.exists()) {
 				f.delete();
 			}
-
+			f.createNewFile();
 			FileOutputStream fos = new FileOutputStream("mac.txt");
+			FileWriter fw = new FileWriter("mac.txt");
 //			ObjectOutputStream	oos	= new ObjectOutputStream(fos);
 			System.out.println("mac : " +mac.length);
-			fos.write(mac);
+			fw.write(DatatypeConverter.printBase64Binary(mac));
+			fw.close();
 			//oos.close();
 			fos.close();
 			System.out.println(f.length());

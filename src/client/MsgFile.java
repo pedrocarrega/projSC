@@ -8,6 +8,7 @@ import java.io.ObjectOutputStream;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -24,8 +25,8 @@ import javax.net.ssl.SSLSocketFactory;
 public class MsgFile {
 	public static void main(String[] args) throws NumberFormatException, UnknownHostException, IOException, ClassNotFoundException {
 		
-		//System.setProperty("javax.net.ssl.trustStore", "truststore.cliente");
-		
+//		System.setProperty("javax.net.ssl.trustStore", "myClient.keyStore");
+		//KeyStore keystore = KeyStore.getInstance("JKS");
 		StringBuilder argumentos = new StringBuilder(args[0]);
 		String adress = null;
 

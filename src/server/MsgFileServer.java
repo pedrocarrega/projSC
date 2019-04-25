@@ -79,16 +79,16 @@ public class MsgFileServer {
 			this.pwMan = pwMan;
 			this.pwKs = pwKs;
 			ks  = KeyStore.getInstance("JKS");
-			ks.load(new FileInputStream("keyStore.jks"), pwKs.toCharArray());
+			ks.load(new FileInputStream("myServer.keyStore"), pwKs.toCharArray());
 		    //sSoc = new ServerSocket(Integer.parseInt(args));
 		    //sSoc = new SSLSimpleServer(Integer.parseInt(args));
 		    //SSLServerSocketFactory ssf = (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
 		    //SSLServerSocket sslServerSocket = (SSLServerSocket)ssf.createServerSocket(Integer.parseInt(args));
 		    //sSoc = sslServerSocket;
 		    //sSoc = (SSLServerSocket) ssf.createServerSocket(Integer.parseInt(args));
-		    ServerSocket sslServerSocket = 
-		                  sslServerSocketFactory.createServerSocket(Integer.parseInt(porto));
-		    sSoc = sslServerSocket.accept();
+//		    ServerSocket sslServerSocket = 
+//		                  sslServerSocketFactory.createServerSocket(Integer.parseInt(porto));
+//		    sSoc = sslServerSocket.accept();
 		  } catch (IOException e) {
 		    System.err.println(e.getMessage());
 		    System.exit(-1);
@@ -97,7 +97,6 @@ public class MsgFileServer {
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 		} catch (CertificateException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
@@ -107,6 +106,9 @@ public class MsgFileServer {
 		    //Socket inSoc = sSoc.accept();
 		    //ServerThread newServerThread = new ServerThread(inSoc);
 		    //newServerThread.start();
+			ServerSocket sslServerSocket = 
+		                  sslServerSocketFactory.createServerSocket(Integer.parseInt(porto));
+		    sSoc = sslServerSocket.accept();
 		    SSLSimpleServer newSSLServerThread = new SSLSimpleServer(sSoc);
 		    newSSLServerThread.start();
 		  }

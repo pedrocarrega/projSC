@@ -67,6 +67,7 @@ public class UserManager {
 
 					//apresentar opcoes
 					System.out.println(presentOptions());
+					System.out.print("> ");
 					//input
 					String[] input = sc.nextLine().split(" ");
 					int result;

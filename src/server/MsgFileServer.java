@@ -206,16 +206,17 @@ public class MsgFileServer {
 					MessageDigest md = MessageDigest.getInstance("SHA");
 					byte[] hashed = md.digest(nPW.getBytes());
 					String pwHashed = DatatypeConverter.printBase64Binary(hashed);
-					//String tempPass = encryptionAlgorithms.hashingDados(password);
 					if(pwHashed.equals(splited[2])) {
 						br.close();
 						System.out.println("Sessao iniciada");
 						out.writeObject(1);//enviar 1 se o cliente existe e a password estiver correta
+						return;
 					}else {
 						br.close();
 						System.out.println("Passe incorreta, este cliente vai fechar");
 						out.writeObject(-1);//enviar -1 se a password esta incorreta
 						this.socket.close();//para fechar o cliente
+						return;
 					}
 				}
 			}

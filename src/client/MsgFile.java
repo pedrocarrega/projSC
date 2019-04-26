@@ -88,7 +88,7 @@ public class MsgFile {
 					endFlag = true;
 				}
 			}
-
+			
 			sc.close();
 			s.close();
 			in.close();

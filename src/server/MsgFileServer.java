@@ -222,6 +222,7 @@ public class MsgFileServer {
 			}
 			System.out.println("Este utilizador nao existe. Fale com o manager para que lhe seja criada uma conta");
 			out.writeObject(0);//enviar 0 se o cliente nao existe
+			br.close();
 			//mudar este caso para que o cliente agora saiba que ao receber 0 então sabe que tem de falar com o manager
 		}
 

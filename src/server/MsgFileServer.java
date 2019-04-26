@@ -11,7 +11,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.security.Certificate;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyStore;
@@ -23,6 +22,7 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +43,6 @@ import javax.xml.bind.DatatypeConverter;
  *
  */
 
-@SuppressWarnings("deprecation")
 public class MsgFileServer {
 
 	/**
@@ -76,6 +75,7 @@ public class MsgFileServer {
 
 		System.setProperty("javax.net.ssl.keyStore", "myServer.keyStore");
 		System.setProperty("javax.net.ssl.keyStorePassword", pwKs);
+		//System.setProperty("javax.net.ssl.keyStoreType", "JCEKS");
 		Socket sSoc = null;
 		//SSLServerSocket sSoc = null;
 		SSLServerSocketFactory sslServerSocketFactory = 
@@ -321,12 +321,13 @@ public class MsgFileServer {
 						CipherOutputStream cos = new CipherOutputStream(newFile, c);
 						byte[] fileByte = new byte[1024];
 						int tamanho;
-						int quantos;
+						//int quantos;
 
 						while((boolean)inStream.readObject()){//qd recebe false sai do ciclo
 							tamanho = (int)inStream.readObject();
-							quantos = inStream.read(fileByte, 0, tamanho);
-							cos.write(fileByte);	
+							inStream.read(fileByte, 0, tamanho);
+							
+							cos.write(fileByte, 0, tamanho);	
 						}
 
 						cos.close();
@@ -923,7 +924,7 @@ public class MsgFileServer {
 				Cipher c1 = Cipher.getInstance("RSA");
 
 				keyFileInput.read(wrappedKey);
-				PublicKey pk = getPuK();
+				PrivateKey pk = getPiK();
 				c1.init(Cipher.UNWRAP_MODE, pk);
 				keyFileInput.close();
 
@@ -981,8 +982,8 @@ public class MsgFileServer {
 
 			//Recebe o array de bytes que eh a signature gerada
 			sig = s.sign();
-			String pathSig = path.substring(0, path.length() - 3);
-			f = new File(pathSig);
+			String pathSig = path.substring(0, path.length() - 4);
+			f = new File(pathSig + ".sig");
 			fis = new FileInputStream(f);
 
 			//Verifica se as assinaturas sao iguais, se nao entao o ficheiro foi alterado
@@ -1011,12 +1012,13 @@ public class MsgFileServer {
 		 * @throws IOException
 		 */
 		private void atualizaSig(byte[] sig, String user) throws IOException {
-			File f = new File("users/" + user + "/trustedUsers.txt");
+			File f = new File("users/" + user + "/trustedUsers.sig");
 			File sigFile = new File("users/" + user + "/trustedUsers.sig");
 			if(sigFile.exists()) {
 				sigFile.delete();
 			}
 			sigFile = new File("users/" + user + "/trustedUsers.sig");
+			sigFile.createNewFile();
 			FileOutputStream newFile = new FileOutputStream(f);
 			ObjectOutputStream oos = new ObjectOutputStream(newFile);
 			oos.write(sig);

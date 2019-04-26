@@ -12,7 +12,6 @@ import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.Certificate;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyStore;
@@ -24,6 +23,7 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.util.Scanner;
 
@@ -36,7 +36,6 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.xml.bind.DatatypeConverter;
 
-@SuppressWarnings("deprecation")
 public class UserManager {
 
 	private static KeyStore ks;
@@ -149,7 +148,7 @@ public class UserManager {
 	}
 
 
-	private static boolean addUser(String username, String password, String managerPW) throws NoSuchAlgorithmException, IOException {
+	private static boolean addUser(String username, String password, String managerPW) throws NoSuchAlgorithmException, IOException, InvalidKeyException, NoSuchPaddingException, SignatureException, IllegalBlockSizeException {
 
 
 		BufferedReader br = new BufferedReader(new FileReader(new File("users.txt")));
@@ -173,8 +172,9 @@ public class UserManager {
 		folder.createNewFile();
 		folder = new File("users/" + username + "/trustedUsers.txt");
 		folder.createNewFile();
-
-
+		byte[] sig = generateSig(username);
+		atualizaSig(sig, username);
+		
 		br.close();
 		bw.close();
 		encryptionAlgorithms.atualizaMAC(encryptionAlgorithms.geraMAC(managerPW));
@@ -425,7 +425,7 @@ public class UserManager {
 			Cipher c1 = Cipher.getInstance("RSA");
 
 			keyFileInput.read(wrappedKey);
-			PublicKey pk = getPuK();
+			PrivateKey pk = getPiK();
 			c1.init(Cipher.UNWRAP_MODE, pk);
 			keyFileInput.close();
 
@@ -483,7 +483,7 @@ public class UserManager {
 
 		//Recebe o array de bytes que eh a signature gerada
 		sig = s.sign();
-		String pathSig = path.substring(0, path.length() - 3);
+		String pathSig = path.substring(0, path.length() - 4);
 		f = new File(pathSig);
 		fis = new FileInputStream(f);
 
@@ -513,12 +513,13 @@ public class UserManager {
 	 * @throws IOException
 	 */
 	private static void atualizaSig(byte[] sig, String user) throws IOException {
-		File f = new File("users/" + user + "/trustedUsers.txt");
+		File f = new File("users/" + user + "/trustedUsers.sig");
 		File sigFile = new File("users/" + user + "/trustedUsers.sig");
 		if(sigFile.exists()) {
 			sigFile.delete();
 		}
 		sigFile = new File("users/" + user + "/trustedUsers.sig");
+		sigFile.createNewFile();
 		FileOutputStream newFile = new FileOutputStream(f);
 		ObjectOutputStream oos = new ObjectOutputStream(newFile);
 		oos.write(sig);
@@ -560,6 +561,8 @@ public class UserManager {
 		cos.close();
 		return s.sign();			
 	}
+	
+	
 
 
 	private static String presentOptions() {

@@ -25,24 +25,24 @@ import javax.net.ssl.SSLSocketFactory;
 public class MsgFile {
 	public static void main(String[] args) throws NumberFormatException, UnknownHostException, IOException, ClassNotFoundException {
 		
-		System.setProperty("javax.net.ssl.trustStore", "myClient.keystore");
+		System.setProperty("javax.net.ssl.trustStore", "myClient.keyStore");
 		System.setProperty("javax.net.ssl.trustStorePassword", "123456789");
 		
 //		System.setProperty("javax.net.ssl.trustStore", "myClient.keyStore");
 		//KeyStore keystore = KeyStore.getInstance("JKS");
 		StringBuilder argumentos = new StringBuilder(args[0]);
+		String port = null;
 		String adress = null;
 
 		for(int i = 0; i < argumentos.length(); i++) {
 			if(argumentos.charAt(i) == ':') {
 				adress = argumentos.substring(0, i);
+				port = argumentos.substring(adress.length() + 1);
 				break;
 			}
 		}
 		try {
-			SocketFactory sf = SSLSocketFactory.getDefault( );
-			String port = argumentos.substring(adress.length() + 1);
-			SSLSocket s = (SSLSocket) sf.createSocket(adress, Integer.parseInt(port));
+			Socket sf = SSLSocketFactory.getDefault().createSocket(adress, Integer.parseInt(port));
 			//Socket echoSocket = new Socket(adress, Integer.parseInt(port));
 			String user = args[1];
 			String password = null;
@@ -55,8 +55,8 @@ public class MsgFile {
 				password = sc.nextLine();
 			}
 
-			ObjectInputStream in = new ObjectInputStream(s.getInputStream());
-			ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
+			ObjectInputStream in = new ObjectInputStream(sf.getInputStream());
+			ObjectOutputStream out = new ObjectOutputStream(sf.getOutputStream());
 
 			out.writeObject(user);
 			out.writeObject(password);
@@ -65,7 +65,7 @@ public class MsgFile {
 
 			if(successLog == -1) {
 				System.out.println("Passe incorreta, o programa vai fechar");
-				s.close();
+				sf.close();
 				sc.close();
 				return;
 			} else if(successLog == 0) {
@@ -90,7 +90,7 @@ public class MsgFile {
 			}
 			
 			sc.close();
-			s.close();
+			sf.close();
 			in.close();
 			out.close();
 		} catch (ConnectException e){

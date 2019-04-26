@@ -16,6 +16,7 @@ import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -34,6 +35,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import javax.net.ssl.SSLServerSocketFactory;
+import javax.xml.bind.DatatypeConverter;
 
 /**
  * 
@@ -49,11 +51,11 @@ public class MsgFileServer {
 	 * @throws NumberFormatException
 	 * @throws IOException
 	 */
-	
+
 	private String pwMan;
 	private String pwKs;
 	private KeyStore ks;
-	
+
 	public static void main(String[] args) throws NumberFormatException, IOException {
 
 		System.out.println("servidor: main");
@@ -68,31 +70,34 @@ public class MsgFileServer {
 	 * @throws NumberFormatException
 	 * @throws IOException
 	 */
-	
+
 	private void startServer(String porto, String pwMan, String pwKs) throws NumberFormatException, IOException {
 
-		  Socket sSoc = null;
-		  //SSLServerSocket sSoc = null;
-		  SSLServerSocketFactory sslServerSocketFactory = 
-		              (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
-		  try {
+
+		System.setProperty("javax.net.ssl.keyStore", "myServer.keyStore");
+		System.setProperty("javax.net.ssl.keyStorePassword", pwKs);
+		Socket sSoc = null;
+		//SSLServerSocket sSoc = null;
+		SSLServerSocketFactory sslServerSocketFactory = 
+				(SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
+		try {
 			this.pwMan = pwMan;
 			this.pwKs = pwKs;
 			ks  = KeyStore.getInstance("JKS");
 			ks.load(new FileInputStream("myServer.keyStore"), pwKs.toCharArray());
-		    //sSoc = new ServerSocket(Integer.parseInt(args));
-		    //sSoc = new SSLSimpleServer(Integer.parseInt(args));
-		    //SSLServerSocketFactory ssf = (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
-		    //SSLServerSocket sslServerSocket = (SSLServerSocket)ssf.createServerSocket(Integer.parseInt(args));
-		    //sSoc = sslServerSocket;
-		    //sSoc = (SSLServerSocket) ssf.createServerSocket(Integer.parseInt(args));
-//		    ServerSocket sslServerSocket = 
-//		                  sslServerSocketFactory.createServerSocket(Integer.parseInt(porto));
-//		    sSoc = sslServerSocket.accept();
-		  } catch (IOException e) {
-		    System.err.println(e.getMessage());
-		    System.exit(-1);
-		  } catch (KeyStoreException e) {
+			//sSoc = new ServerSocket(Integer.parseInt(args));
+			//sSoc = new SSLSimpleServer(Integer.parseInt(args));
+			//SSLServerSocketFactory ssf = (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
+			//SSLServerSocket sslServerSocket = (SSLServerSocket)ssf.createServerSocket(Integer.parseInt(args));
+			//sSoc = sslServerSocket;
+			//sSoc = (SSLServerSocket) ssf.createServerSocket(Integer.parseInt(args));
+			//		    ServerSocket sslServerSocket = 
+			//		                  sslServerSocketFactory.createServerSocket(Integer.parseInt(porto));
+			//		    sSoc = sslServerSocket.accept();
+		} catch (IOException e) {
+			System.err.println(e.getMessage());
+			System.exit(-1);
+		} catch (KeyStoreException e) {
 			e.printStackTrace();
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
@@ -100,33 +105,33 @@ public class MsgFileServer {
 			e.printStackTrace();
 		}
 
-		  while(true) {
-		    //new SSLSimpleServer(sSoc.accept()).start( );
-		    //SSLSocket sslSocket = (SSLSocket)sSoc.accept();
-		    //Socket inSoc = sSoc.accept();
-		    //ServerThread newServerThread = new ServerThread(inSoc);
-		    //newServerThread.start();
+		while(true) {
+			//new SSLSimpleServer(sSoc.accept()).start( );
+			//SSLSocket sslSocket = (SSLSocket)sSoc.accept();
+			//Socket inSoc = sSoc.accept();
+			//ServerThread newServerThread = new ServerThread(inSoc);
+			//newServerThread.start();
 			ServerSocket sslServerSocket = 
-		                  sslServerSocketFactory.createServerSocket(Integer.parseInt(porto));
-		    sSoc = sslServerSocket.accept();
-		    SSLSimpleServer newSSLServerThread = new SSLSimpleServer(sSoc);
-		    newSSLServerThread.start();
-		  }
+					sslServerSocketFactory.createServerSocket(Integer.parseInt(porto));
+			sSoc = sslServerSocket.accept();
+			SSLSimpleServer newSSLServerThread = new SSLSimpleServer(sSoc);
+			newSSLServerThread.start();
 		}
-	
+	}
+
 	class SSLSimpleServer extends Thread {
 
 		private Socket socket = null;
 
-			SSLSimpleServer(Socket inSoc) {
-				socket = inSoc;
-			    System.out.println("thread do server para cada cliente");
-			 }
+		SSLSimpleServer(Socket inSoc) {
+			socket = inSoc;
+			System.out.println("thread do server para cada cliente");
+		}
 
 		/**
 		 * Processes client
 		 */
-		
+
 		public void run(){
 			try {
 
@@ -148,17 +153,17 @@ public class MsgFileServer {
 				autenticacao(f, user, password, outStream);
 
 				boolean executa = true;
-				
+
 				while(executa) {
-						String comando = (String)inStream.readObject();//leitura do comando do cliente
-						System.out.println("Comando recebido: " + comando);
-						trataComando(comando, inStream, outStream, user);
-						
-						if(comando.equals("quit")){
-							executa = false;
-						}
+					String comando = (String)inStream.readObject();//leitura do comando do cliente
+					System.out.println("Comando recebido: " + comando);
+					trataComando(comando, inStream, outStream, user);
+
+					if(comando.equals("quit")){
+						executa = false;
+					}
 				}
-				
+
 				socket.close();
 
 			} catch (IOException e) {
@@ -189,16 +194,20 @@ public class MsgFileServer {
 		 * @throws IOException
 		 * @throws NoSuchAlgorithmException 
 		 */
-		
+
 		private void autenticacao(File f, String user, String password, ObjectOutputStream out) throws FileNotFoundException, IOException, NoSuchAlgorithmException {
 
 			BufferedReader br = new BufferedReader(new FileReader(new File("users.txt")));
-			
+
 			while(br.ready()) {
 				String[] splited = br.readLine().split(":");
 				if(splited[0].equals(user)) {
-					String tempPass = encryptionAlgorithms.hashingDados(password);
-					if(tempPass.substring(tempPass.indexOf(":")).equals(splited[2])) {
+					String nPW = splited[1] + password;
+					MessageDigest md = MessageDigest.getInstance("SHA");
+					byte[] hashed = md.digest(nPW.getBytes());
+					String pwHashed = DatatypeConverter.printBase64Binary(hashed);
+					//String tempPass = encryptionAlgorithms.hashingDados(password);
+					if(pwHashed.equals(splited[2])) {
 						br.close();
 						System.out.println("Sessao iniciada");
 						out.writeObject(1);//enviar 1 se o cliente existe e a password estiver correta
@@ -214,7 +223,7 @@ public class MsgFileServer {
 			out.writeObject(0);//enviar 0 se o cliente nao existe
 			//mudar este caso para que o cliente agora saiba que ao receber 0 então sabe que tem de falar com o manager
 		}
-		
+
 		/**
 		 * @param comando
 		 * @param inStream
@@ -228,7 +237,7 @@ public class MsgFileServer {
 		 * @throws IllegalBlockSizeException 
 		 * @throws SignatureException 
 		 */
-		
+
 		private void trataComando(String comando, ObjectInputStream inStream, ObjectOutputStream outStream, String user) throws IOException, ClassNotFoundException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, SignatureException {
 
 			String[] splited = comando.split("\\s+");
@@ -285,42 +294,42 @@ public class MsgFileServer {
 			SecretKey key = null;
 			Cipher c = null;
 
-			
+
 			for(int i = 1; i < splited.length; i++) {
 
 				File f = new File("users/" + user + "/files/" + splited[i]);
 
 				if(!f.exists()) {
-					
-						key = getFileKey("users/" + user + "/files/" + splited[i]);
-						c = Cipher.getInstance("AES");
-						c.init(Cipher.ENCRYPT_MODE, key);
 
-					
+					key = getFileKey("users/" + user + "/files/" + splited[i]);
+					c = Cipher.getInstance("AES");
+					c.init(Cipher.ENCRYPT_MODE, key);
+
+
 					out.writeObject(new Boolean(true));//se ficheiro nao existe envia true de sucesso
 
 					boolean fileClientExist = (boolean)inStream.readObject();
 
 					if(fileClientExist) {
-						
+
 						//int index = splited[i].lastIndexOf(".");
 						//String fileName = splited[i].substring(0, index);
-						
+
 						FileOutputStream newFile = new FileOutputStream("users/" + user + "/files/" + splited[i]);
 						CipherOutputStream cos = new CipherOutputStream(newFile, c);
 						byte[] fileByte = new byte[1024];
 						int tamanho;
 						int quantos;
-							
+
 						while((boolean)inStream.readObject()){//qd recebe false sai do ciclo
 							tamanho = (int)inStream.readObject();
 							quantos = inStream.read(fileByte, 0, tamanho);
 							cos.write(fileByte);	
 						}
-						
+
 						cos.close();
 						newFile.close();
-						
+
 						System.out.println("O ficheiro " + splited[i] + " foi adicionado com sucesso");
 					}
 				} else {
@@ -340,7 +349,7 @@ public class MsgFileServer {
 		 * @param user - userID
 		 * @throws IOException
 		 */
-		
+
 		private void list(ObjectInputStream inStream, ObjectOutputStream outStream, String[] splited, String user) throws IOException {
 
 			File folder = new File("users/" + user + "/files");
@@ -365,7 +374,7 @@ public class MsgFileServer {
 		 * @param user - userID
 		 * @throws IOException
 		 */
-		
+
 		private void remove(ObjectInputStream inStream, ObjectOutputStream out, String[] splited, String user) throws IOException{
 			File apagarFile;
 			File apagarKeyFile;
@@ -378,7 +387,7 @@ public class MsgFileServer {
 
 			}
 		}
-		
+
 		/**
 		 * presents all created users
 		 * 
@@ -388,14 +397,14 @@ public class MsgFileServer {
 		 * @param user - userID
 		 * @throws IOException
 		 */
-		
+
 		private void users(ObjectInputStream inStream, ObjectOutputStream outStream, String[] splited, String user) throws IOException {
 
 			File f = new File("users.txt");
 
 			BufferedReader br = new BufferedReader(new FileReader(f.getName()));
 			List<String> result = new ArrayList<String>();
-			
+
 			if(encryptionAlgorithms.validMAC(pwMan)) {
 				String line = br.readLine();
 
@@ -404,7 +413,7 @@ public class MsgFileServer {
 					result.add(userName[0]);
 					line = br.readLine();
 				}
-				
+
 				br.close();
 				outStream.writeObject(result);
 			}else {
@@ -428,13 +437,13 @@ public class MsgFileServer {
 		 * @throws SignatureException 
 		 * @throws IllegalBlockSizeException 
 		 */
-		
+
 		private void trusted(ObjectInputStream inStream, ObjectOutputStream outStream, String[] splited,
 				String user) throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, SignatureException, IllegalBlockSizeException {
 
 			File f = null;
 			boolean avaliador = true;
-			
+
 			for(int i = 1; i < splited.length; i++) {
 				System.out.println(splited[i]);
 				boolean teste = verificaSig("users/" + user + "/trustedUsers.txt") && encryptionAlgorithms.validMAC(pwMan);
@@ -449,14 +458,14 @@ public class MsgFileServer {
 						f = new File("users/" + user + "/trustedUsers.txt");
 						FileOutputStream newFile = new FileOutputStream(f);
 						String print = splited[i] + "\n";
-						
+
 						SecretKey key = getFileKey("users/" + user + "/trustedUsers.txt");					
-						
+
 						Cipher c = Cipher.getInstance("AES");
 						c.init(Cipher.ENCRYPT_MODE, key);
 						CipherOutputStream cos = new CipherOutputStream(newFile, c);
-						
-						
+
+
 						cos.write(print.getBytes());
 						System.out.println("O utilizador " + splited[i] + " foi adicionado com sucesso");
 						cos.close();
@@ -488,13 +497,13 @@ public class MsgFileServer {
 		 * @throws SignatureException 
 		 * @throws IllegalBlockSizeException 
 		 */
-		
+
 		private void untrusted(ObjectInputStream inStream, ObjectOutputStream outStream, String[] splited,
 				String user) throws IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, SignatureException, IllegalBlockSizeException {
 
 			boolean bol = false;
 			boolean integridade;
-			
+
 			for(int i = 1; i < splited.length; i++) {
 				if(integridade = !verificaSig("users/" + user + "/trustedUsers.txt") || !encryptionAlgorithms.validMAC(pwMan)) {
 					outStream.writeObject(-2);//envia -1 se o user a adicionar ja esta nos trusted
@@ -504,29 +513,29 @@ public class MsgFileServer {
 					outStream.writeObject(0);//envia -1 se o user a adicionar ja esta nos trusted
 					System.out.println("O utilizador" + splited[i] + "nao existe no servidor");
 				}else if(!integridade && (bol = !bol && !userExistsTrusted(splited[i], user))) {
-					
+
 					outStream.writeObject(-1);//envia -1 se o user a adicionar ja esta nos trusted
 					System.out.println("O utilizador" + splited[i] + "nao existe nos Trusted Users");
-					
+
 				} else {
-					
+
 					File f = new File("users/" + user + "/trustedUsers.txt");
 					File tempFile = new File("users/" + user + "/trustedUsers1.txt");
 					Cipher cInput = Cipher.getInstance("AES");
 					Cipher cOutput = Cipher.getInstance("AES");
 					Key key = getFileKey(f.getPath());
-					
+
 					tempFile.createNewFile();
 					cInput.init(Cipher.DECRYPT_MODE, key);
 					cOutput.init(Cipher.ENCRYPT_MODE, key);
-					
+
 					FileInputStream fis = new FileInputStream(f);
 					FileOutputStream fos = new FileOutputStream(tempFile);
 					CipherInputStream cis = new CipherInputStream(fis, cInput);
 					CipherOutputStream cos = new CipherOutputStream(fos, cOutput);
 					StringBuilder sb = new StringBuilder();
 					char letra;
-					
+
 					//
 					while(cis.available() != 0) {
 						if((letra = (char)cis.read()) != '\n') {
@@ -567,51 +576,51 @@ public class MsgFileServer {
 		 * @throws IllegalBlockSizeException 
 		 * @throws SignatureException 
 		 */
-		
+
 		private void download(ObjectInputStream inStream, ObjectOutputStream outStream, String[] splited, String user) throws IOException, InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, SignatureException {
-			
+
 			String userID = splited[1];
 			boolean integridade;
-			
+
 			if(userID.equals(user)){
 				System.out.println("Nao pode fazer o download de um ficheiro da sua conta");
 			}
-			
+
 			if(integridade = !verificaSig("users/" + user + "/trustedUsers.txt") || !encryptionAlgorithms.validMAC(pwMan)) {
 				System.out.println("Integridade de ficheiros comprometida");
 				outStream.writeObject(-3);
 			}
-			
+
 			if(!integridade && userExistsServer(userID)){
 				if(userExistsTrusted(user, userID)){
-					
+
 					String fileName = splited[2];
 					File f = new File("users/" + userID + "/files/" + fileName);
-					
+
 					if(f.exists()) {
-						
+
 						outStream.writeObject(1);
-						
+
 						Cipher cInput = Cipher.getInstance("AES");
 						Key key = getFileKey(f.getPath());
-						
+
 						cInput.init(Cipher.DECRYPT_MODE, key);
 						FileInputStream fileStream = new FileInputStream(f);
 						CipherInputStream cis = new CipherInputStream(fileStream, cInput);
 						byte[] fileByte = new byte[1024];
 						int aux;
-						
+
 						while((aux = cis.read(fileByte)) != -1){
 							outStream.writeObject(new Boolean (true)); //envia true enqt o ciclo esta a correr
 							outStream.writeObject(aux);
 							outStream.write(fileByte, 0, aux);
 							outStream.flush();
 						}
-						
+
 						outStream.writeObject(new Boolean(false));
 						cis.close();
 						fileStream.close();
-						
+
 					} else {
 						//caso o ficheiro que vai ser sacado nao exista
 						System.out.println("O ficheiro " + fileName + " nao existe");
@@ -622,7 +631,7 @@ public class MsgFileServer {
 					System.out.println("Users em questao nao sao amigos");
 					outStream.writeObject(-1);
 				}
-				
+
 			} else {
 				System.out.println("O user q o cliente procura nao existe");
 				outStream.writeObject(-2);
@@ -643,44 +652,44 @@ public class MsgFileServer {
 		 * @throws IllegalBlockSizeException 
 		 * @throws SignatureException 
 		 */
-		
-		private void msg(ObjectInputStream inStream, ObjectOutputStream outStream, String[] splited, String user) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IOException, IllegalBlockSizeException, SignatureException {
-					if(encryptionAlgorithms.validMAC(pwMan) && verificaSig("users/" + user + "/trustedUsers.txt")) {
-						if(userExistsServer(splited[1]) && !splited[1].equals(user)) {
-							File mail = new File("users/" + splited[1] + "/inbox.txt");
-							StringBuilder msg = new StringBuilder();
 
-							if(userExistsTrusted(splited[1], user)){
-								FileWriter fw = new FileWriter(mail,true); //the true will append the new data
-								FileOutputStream fos = new FileOutputStream(mail);
-								SecretKey key = getFileKey("users/" + splited[1] + "/inbox.txt");
-								Cipher cOutput = Cipher.getInstance("AES");
-								cOutput.init(Cipher.ENCRYPT_MODE, key);
-								
-								CipherOutputStream cos = new CipherOutputStream(fos, cOutput);
-								
-								for(int i = 2; i < splited.length; i++) {
-									msg.append(splited[i] + " ");
-								}
-								String msgComplete = "Sent from: " + user + "\nMessage: " + msg.toString() + "\n\n";
-								cos.write(msgComplete.getBytes());//appends message to the file
-								fw.close();
-								cos.close();
-								outStream.writeObject(1);
-							}else {
-								outStream.writeObject(0);
-							}
-						}else if(userExistsServer(splited[1]) && splited[1].equals(user)){
-							outStream.writeObject(-1);
-						}else {
-							outStream.writeObject(-2);
+		private void msg(ObjectInputStream inStream, ObjectOutputStream outStream, String[] splited, String user) throws InvalidKeyException, NoSuchAlgorithmException, NoSuchPaddingException, IOException, IllegalBlockSizeException, SignatureException {
+			if(encryptionAlgorithms.validMAC(pwMan) && verificaSig("users/" + user + "/trustedUsers.txt")) {
+				if(userExistsServer(splited[1]) && !splited[1].equals(user)) {
+					File mail = new File("users/" + splited[1] + "/inbox.txt");
+					StringBuilder msg = new StringBuilder();
+
+					if(userExistsTrusted(splited[1], user)){
+						FileWriter fw = new FileWriter(mail,true); //the true will append the new data
+						FileOutputStream fos = new FileOutputStream(mail);
+						SecretKey key = getFileKey("users/" + splited[1] + "/inbox.txt");
+						Cipher cOutput = Cipher.getInstance("AES");
+						cOutput.init(Cipher.ENCRYPT_MODE, key);
+
+						CipherOutputStream cos = new CipherOutputStream(fos, cOutput);
+
+						for(int i = 2; i < splited.length; i++) {
+							msg.append(splited[i] + " ");
 						}
+						String msgComplete = "Sent from: " + user + "\nMessage: " + msg.toString() + "\n\n";
+						cos.write(msgComplete.getBytes());//appends message to the file
+						fw.close();
+						cos.close();
+						outStream.writeObject(1);
 					}else {
-						outStream.writeObject(-3);
-						System.out.println("Integridade dos ficheiros compremetida");
+						outStream.writeObject(0);
 					}
-			
-				
+				}else if(userExistsServer(splited[1]) && splited[1].equals(user)){
+					outStream.writeObject(-1);
+				}else {
+					outStream.writeObject(-2);
+				}
+			}else {
+				outStream.writeObject(-3);
+				System.out.println("Integridade dos ficheiros compremetida");
+			}
+
+
 		}
 
 		/**
@@ -701,7 +710,7 @@ public class MsgFileServer {
 		private void collect(ObjectInputStream inStream, ObjectOutputStream outStream, String[] splited,
 				String user) throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, SignatureException {
 
-			
+
 			if(verificaSig("users/" + user + "/inbox.txt")) {
 				File inbox = new File("users/" + user + "/inbox.txt");
 				FileInputStream fis = new FileInputStream(inbox);
@@ -733,18 +742,18 @@ public class MsgFileServer {
 				outStream.writeObject("Erro, tente mais tarde");
 			}
 		}
-		
+
 		/**
 		 * disconnects from the server
 		 * 
 		 * @param user - userID
 		 */
-		
+
 		private void quit(String user) {
 			System.out.println("O client " + user + " vai disconectar");
 		}
-		
-		
+
+
 		/**
 		 * checks if the logged in user is trusted
 		 * 
@@ -759,9 +768,9 @@ public class MsgFileServer {
 		 * @throws InvalidKeyException 
 		 * @throws IllegalBlockSizeException 
 		 */
-		
+
 		private boolean userExistsTrusted(String userAdd, String userClient) throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException {
-			
+
 			File f = new File("users/" + userClient + "/trustedUsers.txt");
 			char letra;
 			FileInputStream newFile = new FileInputStream(f);
@@ -770,7 +779,7 @@ public class MsgFileServer {
 			c.init(Cipher.ENCRYPT_MODE, key);
 			CipherInputStream cos = new CipherInputStream(newFile, c);
 			StringBuilder sb = new StringBuilder();
-				
+
 			while(cos.available() != 0) {
 				if((letra = (char)cos.read()) != '\n') {
 					sb.append(letra);
@@ -788,7 +797,7 @@ public class MsgFileServer {
 			return false;
 		}
 
-		
+
 		/**
 		 * checks if the userID exists on server
 		 * 
@@ -798,7 +807,7 @@ public class MsgFileServer {
 		 * 
 		 * @throws IOException
 		 */
-		
+
 		private boolean userExistsServer(String user) throws IOException {
 
 			File f = new File("users.txt");
@@ -826,7 +835,7 @@ public class MsgFileServer {
 			}
 			return false;
 		}
-		
+
 		/**
 		 * 
 		 * @return
@@ -837,7 +846,7 @@ public class MsgFileServer {
 			kg.init(128);
 			return kg.generateKey();
 		}
-		
+
 		/**
 		 * 
 		 * @return
@@ -851,7 +860,7 @@ public class MsgFileServer {
 			}	
 			return pk;
 		}
-		
+
 		/**
 		 * 
 		 * @return
@@ -865,7 +874,7 @@ public class MsgFileServer {
 			}
 			return cert.getPublicKey();
 		}
-		
+
 		/**
 		 * 
 		 * @param key
@@ -891,7 +900,7 @@ public class MsgFileServer {
 			keyOutputFile.write(wrappedKey);
 			keyOutputFile.close();
 		}
-		
+
 		/**
 		 * 
 		 * @param path
@@ -928,7 +937,7 @@ public class MsgFileServer {
 				return key;
 			}	
 		}
-		
+
 		/**
 		 * 
 		 * @param path
@@ -992,7 +1001,7 @@ public class MsgFileServer {
 			fis.close();
 			return true;
 		}
-		
+
 		/**
 		 * 
 		 * @param sig
@@ -1012,7 +1021,7 @@ public class MsgFileServer {
 			oos.close();
 			newFile.close();			
 		}
-		
+
 		/**
 		 * 
 		 * @param user

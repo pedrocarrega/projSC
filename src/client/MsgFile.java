@@ -69,7 +69,9 @@ public class MsgFile {
 				sc.close();
 				return;
 			} else if(successLog == 0) {
-				System.out.println("Este utilizador nao existe. Assim, vai ser criada uma conta com este username e password");
+				System.out.println("Este utilizador nao existe. Assim, o programa vai fechar (falar c o manager)");
+				sc.close();
+				return;
 			} else {
 				System.out.println("Sessao iniciada com sucesso");
 			}

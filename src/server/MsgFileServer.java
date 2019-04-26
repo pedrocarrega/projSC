@@ -150,17 +150,19 @@ public class MsgFileServer {
 				String password = (String)inStream.readObject();
 
 
-				autenticacao(f, user, password, outStream);
+				boolean autenticacaoSucess = autenticacao(f, user, password, outStream);
 
 				boolean executa = true;
 
-				while(executa) {
-					String comando = (String)inStream.readObject();//leitura do comando do cliente
-					System.out.println("Comando recebido: " + comando);
-					trataComando(comando, inStream, outStream, user);
+				if(autenticacaoSucess){
+					while(executa) {
+						String comando = (String)inStream.readObject();//leitura do comando do cliente
+						System.out.println("Comando recebido: " + comando);
+						trataComando(comando, inStream, outStream, user);
 
-					if(comando.equals("quit")){
-						executa = false;
+						if(comando.equals("quit")){
+							executa = false;
+						}
 					}
 				}
 
@@ -195,7 +197,7 @@ public class MsgFileServer {
 		 * @throws NoSuchAlgorithmException 
 		 */
 
-		private void autenticacao(File f, String user, String password, ObjectOutputStream out) throws FileNotFoundException, IOException, NoSuchAlgorithmException {
+		private boolean autenticacao(File f, String user, String password, ObjectOutputStream out) throws FileNotFoundException, IOException, NoSuchAlgorithmException {
 
 			BufferedReader br = new BufferedReader(new FileReader(new File("users.txt")));
 
@@ -210,19 +212,21 @@ public class MsgFileServer {
 						br.close();
 						System.out.println("Sessao iniciada");
 						out.writeObject(1);//enviar 1 se o cliente existe e a password estiver correta
-						return;
+						return true;
 					}else {
 						br.close();
 						System.out.println("Passe incorreta, este cliente vai fechar");
 						out.writeObject(-1);//enviar -1 se a password esta incorreta
 						this.socket.close();//para fechar o cliente
-						return;
+						return false;
 					}
 				}
 			}
 			System.out.println("Este utilizador nao existe. Fale com o manager para que lhe seja criada uma conta");
 			out.writeObject(0);//enviar 0 se o cliente nao existe
 			br.close();
+			this.socket.close();
+			return false;
 			//mudar este caso para que o cliente agora saiba que ao receber 0 então sabe que tem de falar com o manager
 		}
 
@@ -326,7 +330,7 @@ public class MsgFileServer {
 						while((boolean)inStream.readObject()){//qd recebe false sai do ciclo
 							tamanho = (int)inStream.readObject();
 							inStream.read(fileByte, 0, tamanho);
-							
+
 							cos.write(fileByte, 0, tamanho);	
 						}
 

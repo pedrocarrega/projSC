@@ -204,7 +204,6 @@ public class MsgFileServer {
 					}
 				}
 			}
-			System.out.println("Este utilizador nao existe. Fale com o manager para que lhe seja criada uma conta");
 			out.writeObject(0);//enviar 0 se o cliente nao existe
 			br.close();
 		}
@@ -803,6 +802,7 @@ public class MsgFileServer {
 
 				while(line != null) {
 					userName = line.split(":");
+					System.out.println("user: " + userName);
 					if(userName[0].equals(user)) {
 						br.close();
 						return true;
@@ -879,6 +879,8 @@ public class MsgFileServer {
 			File kFile = new File(path);
 			kFile.createNewFile();
 			FileOutputStream keyOutputFile = new FileOutputStream(kFile);
+			System.out.println("path: " + path);
+			System.out.println("wrappedKey: " + wrappedKey);
 			keyOutputFile.write(wrappedKey);
 			keyOutputFile.close();
 		}
@@ -897,6 +899,7 @@ public class MsgFileServer {
 
 			File keyFile = new File(path + ".key");
 			if(keyFile.exists()) {
+				System.out.println("entra onde nao deve");
 				FileInputStream keyFileInput = new FileInputStream(path + ".key");
 
 				byte[] wrappedKey = new byte[keyFileInput.available()];
@@ -946,14 +949,16 @@ public class MsgFileServer {
 			byte[] sig;
 
 			s.initSign(pk);
-
+			System.out.println(cis.available());
 			//faz update ah signature
 			while(cis.available() != 0) {
 				if((letra = (char)cis.read()) != '\n') {
 					sb.append(letra);
+					System.out.print(letra);
 				}else {
 					s.update(sb.toString().getBytes());
 					sb.setLength(0);
+					System.out.print(letra);
 				}
 			}
 
@@ -962,7 +967,7 @@ public class MsgFileServer {
 			String pathSig = path.substring(0, path.length() - 4);
 			f = new File(pathSig + ".sig");
 			fis = new FileInputStream(f);
-
+			System.out.println(sig.length + "," + f.length());
 			//Verifica se as assinaturas sao iguais, se nao entao o ficheiro foi alterado
 			if(sig.length == f.length()) {
 				for(int i = 0; i < sig.length; i++) {

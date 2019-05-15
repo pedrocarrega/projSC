@@ -168,6 +168,7 @@ public class UserManager {
 		folder = new File("users/" + username + "/trustedUsers.txt");
 		folder.createNewFile();
 		byte[] sig = generateSig(username);
+		System.out.println("sig: " + sig);
 		atualizaSig(sig, username);
 		
 		br.close();
@@ -392,7 +393,8 @@ public class UserManager {
 		c1.init(Cipher.WRAP_MODE, pk);
 		byte[] wrappedKey = c1.wrap(key);
 
-		File kFile = new File(path);
+		System.out.println("pathuserman: " + path);
+		File kFile = new File(path + ".key");
 		kFile.createNewFile();
 		FileOutputStream keyOutputFile = new FileOutputStream(kFile);
 		keyOutputFile.write(wrappedKey);
@@ -427,7 +429,7 @@ public class UserManager {
 		}else {
 			keyFile.createNewFile();
 			SecretKey key = generateKey();
-
+			System.out.println("key: " + key);
 			saveFileKey(key, path);
 
 			return key;

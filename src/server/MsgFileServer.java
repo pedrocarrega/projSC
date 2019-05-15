@@ -75,9 +75,7 @@ public class MsgFileServer {
 
 		System.setProperty("javax.net.ssl.keyStore", "myServer.keyStore");
 		System.setProperty("javax.net.ssl.keyStorePassword", pwKs);
-		//System.setProperty("javax.net.ssl.keyStoreType", "JCEKS");
 		Socket sSoc = null;
-		//SSLServerSocket sSoc = null;
 		SSLServerSocketFactory sslServerSocketFactory = 
 				(SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
 		try {
@@ -85,15 +83,6 @@ public class MsgFileServer {
 			this.pwKs = pwKs;
 			ks  = KeyStore.getInstance("JKS");
 			ks.load(new FileInputStream("myServer.keyStore"), pwKs.toCharArray());
-			//sSoc = new ServerSocket(Integer.parseInt(args));
-			//sSoc = new SSLSimpleServer(Integer.parseInt(args));
-			//SSLServerSocketFactory ssf = (SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
-			//SSLServerSocket sslServerSocket = (SSLServerSocket)ssf.createServerSocket(Integer.parseInt(args));
-			//sSoc = sslServerSocket;
-			//sSoc = (SSLServerSocket) ssf.createServerSocket(Integer.parseInt(args));
-			//		    ServerSocket sslServerSocket = 
-			//		                  sslServerSocketFactory.createServerSocket(Integer.parseInt(porto));
-			//		    sSoc = sslServerSocket.accept();
 		} catch (IOException e) {
 			System.err.println(e.getMessage());
 			System.exit(-1);
@@ -106,11 +95,6 @@ public class MsgFileServer {
 		}
 
 		while(true) {
-			//new SSLSimpleServer(sSoc.accept()).start( );
-			//SSLSocket sslSocket = (SSLSocket)sSoc.accept();
-			//Socket inSoc = sSoc.accept();
-			//ServerThread newServerThread = new ServerThread(inSoc);
-			//newServerThread.start();
 			ServerSocket sslServerSocket = 
 					sslServerSocketFactory.createServerSocket(Integer.parseInt(porto));
 			sSoc = sslServerSocket.accept();
@@ -223,7 +207,6 @@ public class MsgFileServer {
 			System.out.println("Este utilizador nao existe. Fale com o manager para que lhe seja criada uma conta");
 			out.writeObject(0);//enviar 0 se o cliente nao existe
 			br.close();
-			//mudar este caso para que o cliente agora saiba que ao receber 0 então sabe que tem de falar com o manager
 		}
 
 		/**
@@ -313,9 +296,6 @@ public class MsgFileServer {
 					boolean fileClientExist = (boolean)inStream.readObject();
 
 					if(fileClientExist) {
-
-						//int index = splited[i].lastIndexOf(".");
-						//String fileName = splited[i].substring(0, index);
 
 						FileOutputStream newFile = new FileOutputStream("users/" + user + "/files/" + splited[i]);
 						CipherOutputStream cos = new CipherOutputStream(newFile, c);
@@ -891,7 +871,6 @@ public class MsgFileServer {
 		 */
 		private void saveFileKey(SecretKey key, String path) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IOException, IllegalBlockSizeException {
 
-			//ir buscar o certificado que tem a chave publica e privada
 			Cipher c1 = Cipher.getInstance("RSA");
 			PublicKey pk = getPuK();
 			c1.init(Cipher.WRAP_MODE, pk);
@@ -928,12 +907,10 @@ public class MsgFileServer {
 				c1.init(Cipher.UNWRAP_MODE, pk);
 				keyFileInput.close();
 
-				return (SecretKey)c1.unwrap(wrappedKey, "RSA", Cipher.SECRET_KEY);
+				return (SecretKey)c1.unwrap(wrappedKey, "AES", Cipher.SECRET_KEY);
 			}else {
 				keyFile.createNewFile();
 				SecretKey key = generateKey();
-				Cipher c = Cipher.getInstance("AES");
-				c.init(Cipher.ENCRYPT_MODE, key);
 
 				saveFileKey(key, path);
 

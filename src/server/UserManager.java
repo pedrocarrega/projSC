@@ -387,7 +387,6 @@ public class UserManager {
 	 */
 	private static void saveFileKey(SecretKey key, String path) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IOException, IllegalBlockSizeException {
 
-		//ir buscar o certificado que tem a chave publica e privada
 		Cipher c1 = Cipher.getInstance("RSA");
 		PublicKey pk = getPuK();
 		c1.init(Cipher.WRAP_MODE, pk);
@@ -424,12 +423,10 @@ public class UserManager {
 			c1.init(Cipher.UNWRAP_MODE, pk);
 			keyFileInput.close();
 
-			return (SecretKey)c1.unwrap(wrappedKey, "RSA", Cipher.SECRET_KEY);
+			return (SecretKey)c1.unwrap(wrappedKey, "AES", Cipher.SECRET_KEY);
 		}else {
 			keyFile.createNewFile();
 			SecretKey key = generateKey();
-			Cipher c = Cipher.getInstance("AES");
-			c.init(Cipher.ENCRYPT_MODE, key);
 
 			saveFileKey(key, path);
 

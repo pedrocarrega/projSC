@@ -8,13 +8,10 @@ import java.io.ObjectOutputStream;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-import javax.net.SocketFactory;
-import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 
 /**
@@ -28,8 +25,6 @@ public class MsgFile {
 		System.setProperty("javax.net.ssl.trustStore", "myClient.keyStore");
 		System.setProperty("javax.net.ssl.trustStorePassword", "123456789");
 		
-//		System.setProperty("javax.net.ssl.trustStore", "myClient.keyStore");
-		//KeyStore keystore = KeyStore.getInstance("JKS");
 		StringBuilder argumentos = new StringBuilder(args[0]);
 		String port = null;
 		String adress = null;
@@ -43,7 +38,6 @@ public class MsgFile {
 		}
 		try {
 			Socket sf = SSLSocketFactory.getDefault().createSocket(adress, Integer.parseInt(port));
-			//Socket echoSocket = new Socket(adress, Integer.parseInt(port));
 			String user = args[1];
 			String password = null;
 			Scanner sc = new Scanner(System.in);
@@ -69,9 +63,7 @@ public class MsgFile {
 				sc.close();
 				return;
 			} else if(successLog == 0) {
-				System.out.println("Este utilizador nao existe. Assim, o programa vai fechar (falar c o manager)");
-				sc.close();
-				return;
+				System.out.println("Este utilizador nao existe. Assim, vai ser criada uma conta com este username e password");
 			} else {
 				System.out.println("Sessao iniciada com sucesso");
 			}
@@ -437,7 +429,7 @@ public class MsgFile {
 
 	private static void menu() {
 		System.out.println("-----------------------------------------------------------------------------");
-		System.out.println("store <files> - envia um ou mais ficheiros para o servidor");//se for mais do que um ficheiro como e q e escrito o comando???????????????????????
+		System.out.println("store <files> - envia um ou mais ficheiros para o servidor");
 		System.out.println("list - lista os ficheiros que tem no servidor");
 		System.out.println("remove <files> - remove um ou mais ficheiros guardados no servidor");
 		System.out.println("users - lista todos os utilizadores que estao registados no servidor");

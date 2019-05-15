@@ -477,27 +477,40 @@ public class UserManager {
 
 		//Recebe o array de bytes que eh a signature gerada
 		sig = s.sign();
+		cis.close();
 		String pathSig = path.substring(0, path.length() - 4);
-		f = new File(pathSig);
-		fis = new FileInputStream(f);
-
-		//Verifica se as assinaturas sao iguais, se nao entao o ficheiro foi alterado
-		if(sig.length == f.length()) {
-			for(int i = 0; i < sig.length; i++) {
-				if(sig[i] != fis.read()) {
-					cis.close();
-					fis.close();
-					return false;
-				}
-			}
+//		f = new File(pathSig);
+//		fis = new FileInputStream(f);
+		
+		BufferedReader br = new BufferedReader(new FileReader(pathSig + ".sig"));
+		String sigNovo = DatatypeConverter.printBase64Binary(sig);
+		String sigAntigo = br.readLine();
+		
+		if(sigNovo.equals(sigAntigo)) {
+			br.close();
+			return true;
 		}else {
-			cis.close();
-			fis.close();
+			br.close();
 			return false;
 		}
-		cis.close();
-		fis.close();
-		return true;
+
+		//Verifica se as assinaturas sao iguais, se nao entao o ficheiro foi alterado
+//		if(sig.length == f.length()) {
+//			for(int i = 0; i < sig.length; i++) {
+//				if(sig[i] != fis.read()) {
+//					cis.close();
+//					fis.close();
+//					return false;
+//				}
+//			}
+//		}else {
+//			cis.close();
+//			fis.close();
+//			return false;
+//		}
+		//cis.close();
+		//fis.close();
+		//return true;
 	}
 
 	/**
@@ -507,18 +520,20 @@ public class UserManager {
 	 * @throws IOException
 	 */
 	private static void atualizaSig(byte[] sig, String user) throws IOException {
-		File f = new File("users/" + user + "/trustedUsers.sig");
 		File sigFile = new File("users/" + user + "/trustedUsers.sig");
 		if(sigFile.exists()) {
 			sigFile.delete();
 		}
-		sigFile = new File("users/" + user + "/trustedUsers.sig");
 		sigFile.createNewFile();
-		FileOutputStream newFile = new FileOutputStream(f);
-		ObjectOutputStream oos = new ObjectOutputStream(newFile);
-		oos.write(sig);
-		oos.close();
-		newFile.close();			
+		FileWriter fw = new FileWriter("users/" + user + "/trustedUsers.sig");
+		//FileOutputStream newFile = new FileOutputStream(sigFile);
+		//ObjectOutputStream oos = new ObjectOutputStream(newFile);
+		//oos.write(sig);
+		//oos.close();
+		//newFile.close();	
+		fw.write(DatatypeConverter.printBase64Binary(sig));
+		fw.close();
+		System.out.println(sigFile.length());
 	}
 
 	/**

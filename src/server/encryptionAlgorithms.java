@@ -83,14 +83,12 @@ public class encryptionAlgorithms {
 				f.delete();
 			}
 			f.createNewFile();
-			FileOutputStream fos = new FileOutputStream("mac.txt");
 			FileWriter fw = new FileWriter("mac.txt");
 //			ObjectOutputStream	oos	= new ObjectOutputStream(fos);
 			System.out.println("mac : " +mac.length);
 			fw.write(DatatypeConverter.printBase64Binary(mac));
 			fw.close();
 			//oos.close();
-			fos.close();
 			System.out.println(f.length());
 
 		} catch (IllegalStateException e) {

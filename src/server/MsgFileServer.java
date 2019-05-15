@@ -433,9 +433,9 @@ public class MsgFileServer {
 					if(teste = !userExistsServer(splited[i])) {
 						System.out.println("O utilizador " + splited[i] + " nao existe no servidor");
 						outStream.writeObject(0);//envia 0 se o user a adicionar nao existe no servidor
-					} else if(!teste && !userExistsTrusted(splited[i], user)){
+					} else if(!teste && userExistsTrusted(splited[i], user)){
 						outStream.writeObject(-1);//envia -1 se o user a adicionar ja esta nos trusted
-						System.out.println("O utilizador" + splited[i] + "ja existe nos trustedIDs");
+						System.out.println("O utilizador " + splited[i] + " ja existe nos trustedIDs");
 					}else {
 						f = new File("users/" + user + "/trustedUsers.txt");
 						FileOutputStream newFile = new FileOutputStream(f);
@@ -802,7 +802,7 @@ public class MsgFileServer {
 
 				while(line != null) {
 					userName = line.split(":");
-					System.out.println("user: " + userName);
+					System.out.println("user: " + userName[0]);
 					if(userName[0].equals(user)) {
 						br.close();
 						return true;
@@ -949,42 +949,53 @@ public class MsgFileServer {
 			byte[] sig;
 
 			s.initSign(pk);
-			System.out.println(cis.available());
+
 			//faz update ah signature
 			while(cis.available() != 0) {
 				if((letra = (char)cis.read()) != '\n') {
 					sb.append(letra);
-					System.out.print(letra);
 				}else {
 					s.update(sb.toString().getBytes());
 					sb.setLength(0);
-					System.out.print(letra);
 				}
 			}
 
 			//Recebe o array de bytes que eh a signature gerada
 			sig = s.sign();
+			cis.close();
 			String pathSig = path.substring(0, path.length() - 4);
-			f = new File(pathSig + ".sig");
-			fis = new FileInputStream(f);
-			System.out.println(sig.length + "," + f.length());
-			//Verifica se as assinaturas sao iguais, se nao entao o ficheiro foi alterado
-			if(sig.length == f.length()) {
-				for(int i = 0; i < sig.length; i++) {
-					if(sig[i] != fis.read()) {
-						cis.close();
-						fis.close();
-						return false;
-					}
-				}
+//			f = new File(pathSig);
+//			fis = new FileInputStream(f);
+			System.out.println(pathSig);
+			BufferedReader br = new BufferedReader(new FileReader(pathSig + ".sig"));
+			String sigNovo = DatatypeConverter.printBase64Binary(sig);
+			String sigAntigo = br.readLine();
+			
+			if(sigNovo.equals(sigAntigo)) {
+				br.close();
+				return true;
 			}else {
-				cis.close();
-				fis.close();
+				br.close();
 				return false;
 			}
-			cis.close();
-			fis.close();
-			return true;
+
+			//Verifica se as assinaturas sao iguais, se nao entao o ficheiro foi alterado
+//			if(sig.length == f.length()) {
+//				for(int i = 0; i < sig.length; i++) {
+//					if(sig[i] != fis.read()) {
+//						cis.close();
+//						fis.close();
+//						return false;
+//					}
+//				}
+//			}else {
+//				cis.close();
+//				fis.close();
+//				return false;
+//			}
+			//cis.close();
+			//fis.close();
+			//return true;
 		}
 
 		/**
@@ -994,18 +1005,20 @@ public class MsgFileServer {
 		 * @throws IOException
 		 */
 		private void atualizaSig(byte[] sig, String user) throws IOException {
-			File f = new File("users/" + user + "/trustedUsers.sig");
 			File sigFile = new File("users/" + user + "/trustedUsers.sig");
 			if(sigFile.exists()) {
 				sigFile.delete();
 			}
-			sigFile = new File("users/" + user + "/trustedUsers.sig");
 			sigFile.createNewFile();
-			FileOutputStream newFile = new FileOutputStream(f);
-			ObjectOutputStream oos = new ObjectOutputStream(newFile);
-			oos.write(sig);
-			oos.close();
-			newFile.close();			
+			FileWriter fw = new FileWriter("users/" + user + "/trustedUsers.sig");
+			//FileOutputStream newFile = new FileOutputStream(sigFile);
+			//ObjectOutputStream oos = new ObjectOutputStream(newFile);
+			//oos.write(sig);
+			//oos.close();
+			//newFile.close();	
+			fw.write(DatatypeConverter.printBase64Binary(sig));
+			fw.close();
+			System.out.println(sigFile.length());
 		}
 
 		/**

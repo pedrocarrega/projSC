@@ -642,7 +642,7 @@ public class MsgFileServer {
 					File mail = new File("users/" + splited[1] + "/inbox.txt");
 					StringBuilder msg = new StringBuilder();
 
-					if(userExistsTrusted(splited[1], user)){
+					if(userExistsTrusted(user, splited[1])){
 						FileWriter fw = new FileWriter(mail,true); //the true will append the new data
 						FileOutputStream fos = new FileOutputStream(mail);
 						SecretKey key = getFileKey("users/" + splited[1] + "/inbox.txt");
@@ -694,7 +694,7 @@ public class MsgFileServer {
 				String user) throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, SignatureException {
 
 
-			if(verificaSig("users/" + user + "/inbox.txt")) {
+			//if(verificaSig("users/" + user + "/inbox.txt")) {
 				File inbox = new File("users/" + user + "/inbox.txt");
 				FileInputStream fis = new FileInputStream(inbox);
 				SecretKey key = getFileKey("users/" + user + "/inbox.txt");
@@ -703,10 +703,11 @@ public class MsgFileServer {
 				CipherInputStream cis = new CipherInputStream(fis, cInput);
 				StringBuilder sb = new StringBuilder();
 				int counter = 0;
-				char letra;
+				int letra;
 
-				while((letra = (char)cis.read()) != -1) {
-					sb.append(letra);
+				while((letra = cis.read()) != -1) {
+					System.out.println(sb.toString());
+					sb.append((char)letra);
 					counter++;
 				}
 
@@ -720,10 +721,10 @@ public class MsgFileServer {
 				}else {
 					outStream.writeObject("Nao tem mensagens por ler");
 				}
-			}else {
-				System.out.println("Integridade dos ficheiros compremetida");
-				outStream.writeObject("Erro, tente mais tarde");
-			}
+//			}else {
+//				System.out.println("Integridade dos ficheiros compremetida");
+//				outStream.writeObject("Erro, tente mais tarde");
+//			}
 		}
 
 		/**
@@ -919,7 +920,7 @@ public class MsgFileServer {
 				keyFile.createNewFile();
 				SecretKey key = generateKey();
 
-				saveFileKey(key, path);
+				saveFileKey(key, path + ".key");
 
 				return key;
 			}	

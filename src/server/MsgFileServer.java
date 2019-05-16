@@ -438,7 +438,7 @@ public class MsgFileServer {
 						System.out.println("O utilizador " + splited[i] + " ja existe nos trustedIDs");
 					}else {
 						f = new File("users/" + user + "/trustedUsers.txt");
-						FileOutputStream newFile = new FileOutputStream(f);
+						FileOutputStream newFile = new FileOutputStream(f, true);
 						String print = splited[i] + "\n";
 
 						SecretKey key = getFileKey("users/" + user + "/trustedUsers.txt");					
@@ -513,7 +513,7 @@ public class MsgFileServer {
 					cOutput.init(Cipher.ENCRYPT_MODE, key);
 
 					FileInputStream fis = new FileInputStream(f);
-					FileOutputStream fos = new FileOutputStream(tempFile);
+					FileOutputStream fos = new FileOutputStream(tempFile, true);
 					CipherInputStream cis = new CipherInputStream(fis, cInput);
 					CipherOutputStream cos = new CipherOutputStream(fos, cOutput);
 					StringBuilder sb = new StringBuilder();

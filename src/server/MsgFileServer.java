@@ -513,7 +513,7 @@ public class MsgFileServer {
 					cOutput.init(Cipher.ENCRYPT_MODE, key);
 
 					FileInputStream fis = new FileInputStream(f);
-					FileOutputStream fos = new FileOutputStream(tempFile, true);
+					FileOutputStream fos = new FileOutputStream(tempFile, true); //se untrusted tiver mal é por causa deste true
 					CipherInputStream cis = new CipherInputStream(fis, cInput);
 					CipherOutputStream cos = new CipherOutputStream(fos, cOutput);
 					StringBuilder sb = new StringBuilder();

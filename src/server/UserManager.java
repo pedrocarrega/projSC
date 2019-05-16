@@ -239,11 +239,11 @@ public class UserManager {
 							CipherInputStream cis = new CipherInputStream(fis, cInput);
 							CipherOutputStream cos = new CipherOutputStream(fos, cOutput);
 							StringBuilder sb = new StringBuilder();
-							char letra;
+							int letra;
 	
-							while(cis.available() != 0) {
-								if((letra = (char)cis.read()) != '\n') {
-									sb.append(letra);
+							while((letra = cis.read()) != -1) {
+								if((char)letra != '\n') {
+									sb.append((char)letra);
 								}else {
 									if(!sb.toString().equals(dados[0])) {//Se nao foi encontrado o user a remover
 										cos.write(sb.toString().getBytes());//Se é o user a remover ent n entra no if e nao eh escrito no novo ficheiro cifrado
@@ -457,7 +457,7 @@ public class UserManager {
 
 		CipherInputStream cis = new CipherInputStream(fis, cInput);
 		StringBuilder sb = new StringBuilder();
-		char letra;
+		int letra;
 		PrivateKey pk = getPiK();
 		Signature s = Signature.getInstance("MD5withRSA");
 		byte[] sig;
@@ -465,9 +465,9 @@ public class UserManager {
 		s.initSign(pk);
 
 		//faz update ah signature
-		while(cis.available() != 0) {
-			if((letra = (char)cis.read()) != '\n') {
-				sb.append(letra);
+		while((letra = cis.read()) != -1) {
+			if((char)letra != '\n') {
+				sb.append((char)letra);
 			}else {
 				s.update(sb.toString().getBytes());
 				sb.setLength(0);
@@ -480,7 +480,7 @@ public class UserManager {
 		String pathSig = path.substring(0, path.length() - 4);
 //		f = new File(pathSig);
 //		fis = new FileInputStream(f);
-		
+		System.out.println(pathSig);
 		BufferedReader br = new BufferedReader(new FileReader(pathSig + ".sig"));
 		String sigNovo = DatatypeConverter.printBase64Binary(sig);
 		String sigAntigo = br.readLine();
@@ -552,21 +552,21 @@ public class UserManager {
 		Cipher c = Cipher.getInstance("AES");
 		SecretKey key = getFileKey(f.getPath());
 		c.init(Cipher.DECRYPT_MODE, key);
-		CipherInputStream cos = new CipherInputStream(fis, c);
+		CipherInputStream cis = new CipherInputStream(fis, c);
 		PrivateKey pk = getPiK();
 		Signature s = Signature.getInstance("MD5withRSA");
 		s.initSign(pk);
-		char letra;
+		int letra;
 		StringBuilder sb = new StringBuilder();
-		while(cos.available() != 0) {
-			if((letra = (char)cos.read()) != '\n') {
-				sb.append(letra);
+		while((letra = cis.read()) != -1) {
+			if((char)letra != '\n') {
+				sb.append((char)letra);
 			}else {
 				s.update(sb.toString().getBytes());
 				sb.setLength(0);
 			}
 		}
-		cos.close();
+		cis.close();
 		return s.sign();			
 	}
 	

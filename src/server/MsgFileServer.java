@@ -517,12 +517,12 @@ public class MsgFileServer {
 					CipherInputStream cis = new CipherInputStream(fis, cInput);
 					CipherOutputStream cos = new CipherOutputStream(fos, cOutput);
 					StringBuilder sb = new StringBuilder();
-					char letra;
+					int letra;
 
 					System.out.println("lalala: " + cis.available());
-					while(cis.available() != 0) {
-						if((letra = (char)cis.read()) != '\n') {
-							sb.append(letra);
+					while((letra = cis.read()) != -1) {
+						if(letra != '\n') {
+							sb.append((char)letra);
 						}else {
 							if(!sb.toString().equals(splited[i])) {//Se nao foi encontrado o user a remover
 								cos.write(sb.toString().getBytes());//Se é o user a remover ent n entra no if e nao eh escrito no novo ficheiro cifrado
@@ -755,7 +755,7 @@ public class MsgFileServer {
 		private boolean userExistsTrusted(String userAdd, String userClient) throws IOException, NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException {
 
 			File f = new File("users/" + userClient + "/trustedUsers.txt");
-			char letra;
+			int letra;
 			FileInputStream newFile = new FileInputStream(f);
 			Cipher c = Cipher.getInstance("AES");
 			SecretKey key = getFileKey("users/" + userClient + "/trustedUsers.txt");
@@ -765,9 +765,9 @@ public class MsgFileServer {
 			System.out.println("available " + cis.available());
 			System.out.println("available2 " + newFile.available());
 
-			while(cis.available() != 0) {
-				if((letra = (char)cis.read()) != '\n') {
-					sb.append(letra);
+			while((letra = cis.read()) != -1) {
+				if((char)letra != '\n') {
+					sb.append(((char)letra));
 				}else {
 					if(sb.toString().equals(userAdd)) {
 						cis.close();
@@ -947,7 +947,7 @@ public class MsgFileServer {
 
 			CipherInputStream cis = new CipherInputStream(fis, cInput);
 			StringBuilder sb = new StringBuilder();
-			char letra;
+			int letra;
 			PrivateKey pk = getPiK();
 			Signature s = Signature.getInstance("MD5withRSA");
 			byte[] sig;
@@ -955,9 +955,9 @@ public class MsgFileServer {
 			s.initSign(pk);
 
 			//faz update ah signature
-			while(cis.available() != 0) {
-				if((letra = (char)cis.read()) != '\n') {
-					sb.append(letra);
+			while((letra = cis.read()) != -1) {
+				if((char)letra != '\n') {
+					sb.append((char)letra);
 				}else {
 					s.update(sb.toString().getBytes());
 					sb.setLength(0);
@@ -1042,21 +1042,21 @@ public class MsgFileServer {
 			Cipher c = Cipher.getInstance("AES");
 			SecretKey key = getFileKey(f.getPath());
 			c.init(Cipher.DECRYPT_MODE, key);
-			CipherInputStream cos = new CipherInputStream(fis, c);
+			CipherInputStream cis = new CipherInputStream(fis, c);
 			PrivateKey pk = getPiK();
 			Signature s = Signature.getInstance("MD5withRSA");
 			s.initSign(pk);
-			char letra;
+			int letra;
 			StringBuilder sb = new StringBuilder();
-			while(cos.available() != 0) {
-				if((letra = (char)cos.read()) != '\n') {
-					sb.append(letra);
+			while((letra = cis.read()) != -1) {
+				if((char)letra != '\n') {
+					sb.append((char)letra);
 				}else {
 					s.update(sb.toString().getBytes());
 					sb.setLength(0);
 				}
 			}
-			cos.close();
+			cis.close();
 			return s.sign();			
 		}
 	}

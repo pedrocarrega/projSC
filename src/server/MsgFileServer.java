@@ -487,7 +487,7 @@ public class MsgFileServer {
 			boolean integridade;
 
 			for(int i = 1; i < splited.length; i++) {
-				if(integridade = !verificaSig("users/" + user + "/trustedUsers.txt") || !encryptionAlgorithms.validMAC(pwMan)) {
+				if(integridade = (!verificaSig("users/" + user + "/trustedUsers.txt") || !encryptionAlgorithms.validMAC(pwMan))) {
 					outStream.writeObject(-2);//envia -1 se o user a adicionar ja esta nos trusted
 					System.out.println("Um dos ficheiros foi alterado por alguem sem permissÃµes");
 					break;
@@ -495,6 +495,7 @@ public class MsgFileServer {
 					outStream.writeObject(0);//envia -1 se o user a adicionar ja esta nos trusted
 					System.out.println("O utilizador" + splited[i] + "nao existe no servidor");
 				}else if(!integridade && (bol = !bol && !userExistsTrusted(splited[i], user))) {
+					System.out.println("é trusted? " + userExistsTrusted(splited[i], user));
 
 					outStream.writeObject(-1);//envia -1 se o user a adicionar ja esta nos trusted
 					System.out.println("O utilizador" + splited[i] + "nao existe nos Trusted Users");
@@ -518,7 +519,7 @@ public class MsgFileServer {
 					StringBuilder sb = new StringBuilder();
 					char letra;
 
-					//
+					System.out.println("lalala: " + cis.available());
 					while(cis.available() != 0) {
 						if((letra = (char)cis.read()) != '\n') {
 							sb.append(letra);
@@ -758,23 +759,26 @@ public class MsgFileServer {
 			FileInputStream newFile = new FileInputStream(f);
 			Cipher c = Cipher.getInstance("AES");
 			SecretKey key = getFileKey("users/" + userClient + "/trustedUsers.txt");
-			c.init(Cipher.ENCRYPT_MODE, key);
-			CipherInputStream cos = new CipherInputStream(newFile, c);
+			c.init(Cipher.DECRYPT_MODE, key);
+			CipherInputStream cis = new CipherInputStream(newFile, c);
 			StringBuilder sb = new StringBuilder();
+			System.out.println("available " + cis.available());
+			System.out.println("available2 " + newFile.available());
 
-			while(cos.available() != 0) {
-				if((letra = (char)cos.read()) != '\n') {
+			while(cis.available() != 0) {
+				if((letra = (char)cis.read()) != '\n') {
 					sb.append(letra);
 				}else {
 					if(sb.toString().equals(userAdd)) {
-						cos.close();
+						cis.close();
 						newFile.close();
 						return true;
 					}
 					sb.setLength(0);
 				}
+					System.out.println("sb: " + sb.toString());
 			}
-			cos.close();
+			cis.close();
 			newFile.close();
 			return false;
 		}

@@ -11,6 +11,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyStore;
@@ -78,6 +79,8 @@ public class MsgFileServer {
 		Socket sSoc = null;
 		SSLServerSocketFactory sslServerSocketFactory = 
 				(SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
+		ServerSocket sslServerSocket = 
+				sslServerSocketFactory.createServerSocket(Integer.parseInt(porto));
 		try {
 			this.pwMan = pwMan;
 			this.pwKs = pwKs;
@@ -95,11 +98,8 @@ public class MsgFileServer {
 		}
 
 		while(true) {
-			ServerSocket sslServerSocket = 
-					sslServerSocketFactory.createServerSocket(Integer.parseInt(porto));
-			sSoc = sslServerSocket.accept();
-			SSLSimpleServer newSSLServerThread = new SSLSimpleServer(sSoc);
-			newSSLServerThread.start();
+			//sSoc = sslServerSocket.accept();
+			new SSLSimpleServer(sslServerSocket.accept()).start();
 		}
 	}
 
@@ -151,6 +151,7 @@ public class MsgFileServer {
 				socket.close();
 
 			} catch (IOException e) {
+				System.out.println("Cliente disconectou de forma errada");
 				e.printStackTrace();
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();

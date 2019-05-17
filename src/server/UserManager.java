@@ -319,7 +319,7 @@ public class UserManager {
 			String data = br.readLine();
 			String[] s = data.split(":");
 			if(!s[0].equals(info[0])) {
-				bw.write(data);
+				bw.write(data + "\n");
 			}
 		}
 		

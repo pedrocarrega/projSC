@@ -363,7 +363,7 @@ public class MsgFile {
 		} else if(sucesso == -2){
 			System.out.println("O utilizador " + splited[1] + "nao e seu amigo");
 		}else {
-			System.out.println("Introduziu o seu id como um dos destinatarios");
+			System.out.println("Não é trusted user do destinatario");
 		}		
 	}
 	/**

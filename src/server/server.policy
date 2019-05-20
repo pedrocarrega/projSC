@@ -1,5 +1,13 @@
+<<<<<<< HEAD
+grant codeBase "file:bin/*" {
+=======
+>>>>>>> branch 'master' of https://github.com/pedrocarrega/projSC.git
+
+<<<<<<< HEAD
+=======
 grant codeBase "file:bin/*" {
 
+>>>>>>> branch 'master' of https://github.com/pedrocarrega/projSC.git
   permission java.net.SocketPermission "*:12345", "listen, resolve";
   permission java.net.SocketPermission "*:1024-", "accept, resolve";
   
@@ -14,6 +22,14 @@ grant codeBase "file:bin/*" {
   permission java.util.PropertyPermission "javax.net.ssl.keyStorePassword", "write, read";
   permission java.util.PropertyPermission "javax.net.ssl.keyStoreType", "write, read";
   
+<<<<<<< HEAD
+=======
+};
+  
+grant codeBase "file:${java.home}/lib/ext/*" {
+  permission java.security.AllPermission;
+    
+>>>>>>> branch 'master' of https://github.com/pedrocarrega/projSC.git
 };
   
 grant codeBase "file:${java.home}/lib/ext/*" {

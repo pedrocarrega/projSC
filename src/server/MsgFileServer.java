@@ -11,7 +11,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.KeyStore;
@@ -76,7 +75,6 @@ public class MsgFileServer {
 
 		System.setProperty("javax.net.ssl.keyStore", "myServer.keyStore");
 		System.setProperty("javax.net.ssl.keyStorePassword", pwKs);
-		Socket sSoc = null;
 		SSLServerSocketFactory sslServerSocketFactory = 
 				(SSLServerSocketFactory)SSLServerSocketFactory.getDefault();
 		ServerSocket sslServerSocket = 
@@ -98,7 +96,6 @@ public class MsgFileServer {
 		}
 
 		while(true) {
-			//sSoc = sslServerSocket.accept();
 			new SSLSimpleServer(sslServerSocket.accept()).start();
 		}
 	}
@@ -175,6 +172,7 @@ public class MsgFileServer {
 		 * @param user - userID
 		 * @param password
 		 * @param out - to send objects to client
+		 * @param pwMan 
 		 * @throws FileNotFoundException
 		 * @throws IOException
 		 * @throws NoSuchAlgorithmException 
@@ -182,31 +180,36 @@ public class MsgFileServer {
 
 		private void autenticacao(File f, String user, String password, ObjectOutputStream out) throws FileNotFoundException, IOException, NoSuchAlgorithmException {
 
-			BufferedReader br = new BufferedReader(new FileReader(new File("users.txt")));
+			if(encryptionAlgorithms.validMAC(pwMan)) {
+				BufferedReader br = new BufferedReader(new FileReader(new File("users.txt")));
 
-			while(br.ready()) {
-				String[] splited = br.readLine().split(":");
-				if(splited[0].equals(user)) {
-					String nPW = splited[1] + password;
-					MessageDigest md = MessageDigest.getInstance("SHA");
-					byte[] hashed = md.digest(nPW.getBytes());
-					String pwHashed = DatatypeConverter.printBase64Binary(hashed);
-					if(pwHashed.equals(splited[2])) {
-						br.close();
-						System.out.println("Sessao iniciada");
-						out.writeObject(1);//enviar 1 se o cliente existe e a password estiver correta
-						return;
-					}else {
-						br.close();
-						System.out.println("Passe incorreta, este cliente vai fechar");
-						out.writeObject(-1);//enviar -1 se a password esta incorreta
-						this.socket.close();//para fechar o cliente
-						return;
+				while(br.ready()) {
+					String[] splited = br.readLine().split(":");
+					if(splited[0].equals(user)) {
+						String nPW = splited[1] + password;
+						MessageDigest md = MessageDigest.getInstance("SHA");
+						byte[] hashed = md.digest(nPW.getBytes());
+						String pwHashed = DatatypeConverter.printBase64Binary(hashed);
+						if(pwHashed.equals(splited[2])) {
+							br.close();
+							System.out.println("Sessao iniciada");
+							out.writeObject(1);//enviar 1 se o cliente existe e a password estiver correta
+							return;
+						}else {
+							br.close();
+							System.out.println("Passe incorreta, este cliente vai fechar");
+							out.writeObject(-1);//enviar -1 se a password esta incorreta
+							this.socket.close();//para fechar o cliente
+							return;
+						}
 					}
 				}
+				out.writeObject(0);//enviar 0 se o cliente nao existe
+				br.close();
+			}else {
+				System.out.println("MAC invaliado, ficheiro foi alterado sem permissao");
+				out.writeObject(-2);
 			}
-			out.writeObject(0);//enviar 0 se o cliente nao existe
-			br.close();
 		}
 
 		/**
@@ -306,7 +309,7 @@ public class MsgFileServer {
 						while((boolean)inStream.readObject()){//qd recebe false sai do ciclo
 							tamanho = (int)inStream.readObject();
 							inStream.read(fileByte, 0, tamanho);
-							
+
 							cos.write(fileByte, 0, tamanho);	
 						}
 
@@ -696,36 +699,36 @@ public class MsgFileServer {
 
 
 			//if(verificaSig("users/" + user + "/inbox.txt")) {
-				File inbox = new File("users/" + user + "/inbox.txt");
-				FileInputStream fis = new FileInputStream(inbox);
-				SecretKey key = getFileKey("users/" + user + "/inbox.txt");
-				Cipher cInput = Cipher.getInstance("AES");
-				cInput.init(Cipher.DECRYPT_MODE, key);
-				CipherInputStream cis = new CipherInputStream(fis, cInput);
-				StringBuilder sb = new StringBuilder();
-				int counter = 0;
-				int letra;
+			File inbox = new File("users/" + user + "/inbox.txt");
+			FileInputStream fis = new FileInputStream(inbox);
+			SecretKey key = getFileKey("users/" + user + "/inbox.txt");
+			Cipher cInput = Cipher.getInstance("AES");
+			cInput.init(Cipher.DECRYPT_MODE, key);
+			CipherInputStream cis = new CipherInputStream(fis, cInput);
+			StringBuilder sb = new StringBuilder();
+			int counter = 0;
+			int letra;
 
-				while((letra = cis.read()) != -1) {
-					System.out.println(sb.toString());
-					sb.append((char)letra);
-					counter++;
-				}
+			while((letra = cis.read()) != -1) {
+				System.out.println(sb.toString());
+				sb.append((char)letra);
+				counter++;
+			}
 
-				cis.close();
+			cis.close();
 
-				if(counter > 0) {
-					outStream.writeObject(sb.toString());
-					inbox.delete();
-					File newInbox = new File("users/" + user + "/inbox.txt");
-					newInbox.createNewFile();				
-				}else {
-					outStream.writeObject("Nao tem mensagens por ler");
-				}
-//			}else {
-//				System.out.println("Integridade dos ficheiros compremetida");
-//				outStream.writeObject("Erro, tente mais tarde");
-//			}
+			if(counter > 0) {
+				outStream.writeObject(sb.toString());
+				inbox.delete();
+				File newInbox = new File("users/" + user + "/inbox.txt");
+				newInbox.createNewFile();				
+			}else {
+				outStream.writeObject("Nao tem mensagens por ler");
+			}
+			//			}else {
+			//				System.out.println("Integridade dos ficheiros compremetida");
+			//				outStream.writeObject("Erro, tente mais tarde");
+			//			}
 		}
 
 		/**
@@ -778,7 +781,7 @@ public class MsgFileServer {
 					}
 					sb.setLength(0);
 				}
-					System.out.println("sb: " + sb.toString());
+				System.out.println("sb: " + sb.toString());
 			}
 			cis.close();
 			newFile.close();
@@ -970,13 +973,13 @@ public class MsgFileServer {
 			sig = s.sign();
 			cis.close();
 			String pathSig = path.substring(0, path.length() - 4);
-//			f = new File(pathSig);
-//			fis = new FileInputStream(f);
+			//			f = new File(pathSig);
+			//			fis = new FileInputStream(f);
 			System.out.println(pathSig);
 			BufferedReader br = new BufferedReader(new FileReader(pathSig + ".sig"));
 			String sigNovo = DatatypeConverter.printBase64Binary(sig);
 			String sigAntigo = br.readLine();
-			
+
 			if(sigNovo.equals(sigAntigo)) {
 				br.close();
 				return true;
@@ -986,19 +989,19 @@ public class MsgFileServer {
 			}
 
 			//Verifica se as assinaturas sao iguais, se nao entao o ficheiro foi alterado
-//			if(sig.length == f.length()) {
-//				for(int i = 0; i < sig.length; i++) {
-//					if(sig[i] != fis.read()) {
-//						cis.close();
-//						fis.close();
-//						return false;
-//					}
-//				}
-//			}else {
-//				cis.close();
-//				fis.close();
-//				return false;
-//			}
+			//			if(sig.length == f.length()) {
+			//				for(int i = 0; i < sig.length; i++) {
+			//					if(sig[i] != fis.read()) {
+			//						cis.close();
+			//						fis.close();
+			//						return false;
+			//					}
+			//				}
+			//			}else {
+			//				cis.close();
+			//				fis.close();
+			//				return false;
+			//			}
 			//cis.close();
 			//fis.close();
 			//return true;

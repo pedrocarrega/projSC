@@ -56,14 +56,21 @@ public class MsgFile {
 			out.writeObject(password);
 
 			int successLog = (Integer)in.readObject();
-
-			if(successLog == -1) {
+			if(successLog == -2) {
+				System.out.println("Mac invalido, ficheiro foi alterado sem permissao. O programa vai fechar");
+				sf.close();
+				sc.close();
+				return;
+			}else if(successLog == -1) {
 				System.out.println("Passe incorreta, o programa vai fechar");
 				sf.close();
 				sc.close();
 				return;
 			} else if(successLog == 0) {
-				System.out.println("Este utilizador nao existe. Assim, vai ser criada uma conta com este username e password");
+				System.out.println("Este utilizador nao existe. O programa vai fechar");
+				sf.close();
+				sc.close();
+				return;
 			} else {
 				System.out.println("Sessao iniciada com sucesso");
 			}

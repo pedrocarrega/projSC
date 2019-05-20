@@ -1,8 +1,20 @@
-/* AUTOMATICALLY GENERATED ON Fri Mar 15 13:35:04 WET 2019*/
-/* DO NOT EDIT */
+grant codeBase "file:bin/*" {
 
-grant {
-  permission java.io.FilePermission "${user.home}/-", "read, write";
   permission java.net.SocketPermission "127.0.0.1:12345", "connect, resolve";
+  permission java.net.SocketPermission "*:1024-", "connect, resolve";
+
+  permission java.io.FilePermission "${user.home}/-", "read, write";
+  permission java.io.FilePermission "${user.dir}/-", "read, write";
+  permission java.io.FilePermission "/", "read, write";
+  permission java.io.FilePermission "/-", "read, write";
+  
+  permission java.util.PropertyPermission "user.dir", "read";
+  permission java.util.PropertyPermission "javax.net.ssl.trustStore", "read, write";
+  permission java.util.PropertyPermission "javax.net.ssl.trustStorePassword", "write, read";
+  
 };
 
+grant codeBase "file:${java.home}/lib/ext/*" {
+  permission java.security.AllPermission;
+    
+};
